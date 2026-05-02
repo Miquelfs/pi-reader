@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_title, font_medium_18
 from utils.scanner import get_books_list
+from config.ui_components import draw_battery_icon
 
 class LibraryScreen:
     def __init__(self, ereader):
@@ -26,7 +27,7 @@ class LibraryScreen:
         
         if current_books:
             draw.rectangle((20, self.pointerpos[self.menu], 40, self.pointerpos[self.menu]+20), fill=0)
-        
+        draw_battery_icon(draw, x=425, y=8)
         display.draw_screen(Himage, use_partial=True)
     
     def handle_key(self, key):

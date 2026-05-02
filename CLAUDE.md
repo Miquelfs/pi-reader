@@ -24,15 +24,15 @@
 - All paths are relative to /home/miquel/pi-reader/
 
 ## Known Bugs (fix as we touch each file)
-- reader.py has unused `lines` parameter in __init__
-- comics.py references MenuScreen without importing it
-- No scroll guards in reader.py (can go past end/start of book)
-- Hardcoded absolute paths in 6+ files (centralize to config)
+- ~~reader.py has unused `lines` parameter in __init__~~ fixed
+- ~~comics.py references MenuScreen without importing it~~ fixed
+- ~~No scroll guards in reader.py (can go past end/start of book)~~ fixed
+- Hardcoded absolute paths in fonts.py and comics.py still (partially centralized)
 
 ## Phase 1: Solid Reader (current focus)
-- [ ] Battery % on every screen (PiSugar2 via I2C)
-- [ ] Reader: fix word-wrap (no mid-word breaks)
-- [ ] Reader: scroll guards (can't go past end/start)
+- [x] Battery % on every screen (PiSugar2 via I2C)
+- [x] Reader: fix word-wrap (no mid-word breaks)
+- [x] Reader: scroll guards (can't go past end/start)
 - [ ] Reader: remember last page when exiting
 
 ## Phase 2: Delight

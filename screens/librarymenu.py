@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_title, font_options_24
+from config.ui_components import draw_battery_icon
 
 class LibraryMenuScreen:
     def __init__(self, ereader):
@@ -16,6 +17,7 @@ class LibraryMenuScreen:
         for i, opt in enumerate(self.options):
             draw.text((60, self.pointerpos[i]), f'- {opt}', font=font_options_24, fill=0)
         draw.rectangle((20, self.pointerpos[self.menu], 40, self.pointerpos[self.menu]+20), fill=0)
+        draw_battery_icon(draw, x=425, y=8)
         display.draw_screen(Himage, use_partial=True)
     
     def handle_key(self, key):
