@@ -1,7 +1,9 @@
 import os
-
-LIBRARY_PATH = "/home/miquel/pi-reader/content/library"
+from config.paths import LIBRARY_PATH
 
 
 def get_books_list():
-    return sorted(os.listdir(LIBRARY_PATH))
+    try:
+        return [f for f in sorted(os.listdir(LIBRARY_PATH)) if not f.startswith('.')]
+    except FileNotFoundError:
+        return []

@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+content/books/*
+content/library/*
+content/comics/*
+!content/books/.gitkeep
+!content/library/.gitkeep
+!content/comics/.gitkeep
+logs/
+*.log

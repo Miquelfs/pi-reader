@@ -1,9 +1,10 @@
 import os
+import json
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_medium_18
 from config.ui_components import draw_battery_icon
-from utils.scanner import LIBRARY_PATH
+from config.paths import LIBRARY_PATH, BOOKMARKS_FILE
 import textwrap
 
 LINES_PER_PAGE = 10
@@ -11,18 +12,32 @@ SCROLL_STEP = LINES_PER_PAGE
 WRAP_WIDTH = 58  # characters per line at font_medium_18 on 480px canvas
 
 
+def _load_bookmarks():
+    try:
+        with open(BOOKMARKS_FILE, 'r') as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _save_bookmark(book_file, line):
+    bookmarks = _load_bookmarks()
+    bookmarks[book_file] = line
+    with open(BOOKMARKS_FILE, 'w') as f:
+        json.dump(bookmarks, f)
+
+
 class BookScreenReader:
     def __init__(self, ereader, book_file):
         self.ereader = ereader
         self.book_file = book_file
-        self.current_line = 0
 
         with open(os.path.join(LIBRARY_PATH, book_file), "r") as f:
             content = f.read()
 
-        # textwrap.wrap splits on word boundaries only
         self.lines = textwrap.wrap(content, width=WRAP_WIDTH)
         self.max_line = max(0, len(self.lines) - LINES_PER_PAGE)
+        self.current_line = min(_load_bookmarks().get(book_file, 0), self.max_line)
 
     def draw(self):
         Himage = Image.new('1', (display.epd.height, display.epd.width), 0xFF)
@@ -44,5 +59,6 @@ class BookScreenReader:
             self.current_line = max(self.current_line - SCROLL_STEP, 0)
             self.draw()
         elif key == 'q':  # back to library
+            _save_bookmark(self.book_file, self.current_line)
             from screens.library import LibraryScreen
             self.ereader.switch_to(LibraryScreen)

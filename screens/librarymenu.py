@@ -25,17 +25,17 @@ class LibraryMenuScreen:
             self.menu = max(0, self.menu - 1)
             self.draw()
         elif key == 's':  # down
-            self.menu = min(3, self.menu + 1)
+            self.menu = min(len(self.options) - 1, self.menu + 1)
             self.draw()
         elif key == 'p':
-            if self.menu == 0:  # Biblioteca
+            if self.menu == 0:  # Llibres
                 from screens.library import LibraryScreen
                 self.ereader.switch_to(LibraryScreen)
             elif self.menu == 1:  # Comics
                 from screens.comics import ComicScreen
                 self.ereader.switch_to(ComicScreen)
-            elif self.menu == 2: # Mode de lectura
-                self.ereader.switch_to()
+            elif self.menu == 2:  # Mode de lectura — not yet implemented
+                pass
         elif key == 'esc' or key == 'q':
             from screens.menu import MenuScreen
             self.ereader.switch_to(MenuScreen)

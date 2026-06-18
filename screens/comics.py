@@ -4,7 +4,7 @@ from config.display_manager import display
 from config.fonts import font_title, font_medium_18
 from config.ui_components import draw_battery_icon
 
-COMICS_PATH = "/home/miquel/pi-reader/content/comics"
+from config.paths import COMICS_PATH
 
 class ComicScreen:
     def __init__(self, ereader):
@@ -13,7 +13,10 @@ class ComicScreen:
         self.page = 1
         self.pointerpos = [56, 84, 112, 140, 168, 196, 224]
         self.page_size = 7
-        self.books = sorted(os.listdir(COMICS_PATH))
+        try:
+            self.books = [f for f in sorted(os.listdir(COMICS_PATH)) if not f.startswith('.')]
+        except FileNotFoundError:
+            self.books = []
 
     def draw(self):
         Himage = Image.new('1', (display.epd.height, display.epd.width), 0xFF)

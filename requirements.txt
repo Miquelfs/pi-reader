@@ -1,0 +1,6 @@
+Flask
+Pillow
+smbus2
+gpiozero
+RPi.GPIO
+# Calibre (ebook-convert) must be installed separately: sudo apt install calibre

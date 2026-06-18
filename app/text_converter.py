@@ -1,31 +1,35 @@
 import os
 import shlex
 import subprocess
+from config.paths import BOOKS_PATH, LIBRARY_PATH
 
 
+def _already_converted(filename):
+    stem, _ = os.path.splitext(filename)
+    return (stem + ".txt") in os.listdir(LIBRARY_PATH)
 
-def convert_book(input, output):
-    subprocess.call("ebook-convert" + " " + input  + " " + output, shell=True)
+
+def convert_book(input_path, output_path):
+    """Run ebook-convert and return True on success."""
+    cmd = f"ebook-convert {shlex.quote(input_path)} {shlex.quote(output_path)}"
+    result = subprocess.call(cmd, shell=True)
+    return result == 0
 
 
-files_to_convert = [file for file in os.listdir("/home/miquel/pi-reader/content/books")]
-converted_books = [book for book in os.listdir("/home/miquel/pi-reader/content/library")]
-
-library =[]
-for book in converted_books:
-    filename, extension = os.path.splitext(book)
-    library.append(filename)
-
-for file in files_to_convert:
-    # Remove extension for conversion to TXT 
-    filename, extension = os.path.splitext(file)
-    if extension ==".txt":
-        continue
-    elif filename in library:
-        continue
-    else:
-        output = filename + ".txt"
-        full_input = shlex.quote(os.path.join("/home/miquel/pi-reader/content/books", file))
-        full_output = shlex.quote(os.path.join("/home/miquel/pi-reader/content/library", output))
-        print(f"Creating {full_output} from previous extension {extension}")
-        convert_book(full_input, full_output)
+def convert_pending():
+    """Convert every file in books/ that isn't already in library/. Returns list of converted filenames."""
+    converted = []
+    for filename in os.listdir(BOOKS_PATH):
+        stem, ext = os.path.splitext(filename)
+        if ext.lower() == ".txt":
+            continue
+        if _already_converted(filename):
+            continue
+        input_path  = os.path.join(BOOKS_PATH, filename)
+        output_path = os.path.join(LIBRARY_PATH, stem + ".txt")
+        print(f"Converting {filename} → {stem}.txt")
+        if convert_book(input_path, output_path):
+            converted.append(stem + ".txt")
+        else:
+            print(f"  ebook-convert failed for {filename}")
+    return converted
