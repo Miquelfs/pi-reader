@@ -20,8 +20,10 @@ def convert_pending():
     """Convert every file in books/ that isn't already in library/. Returns list of converted filenames."""
     converted = []
     for filename in os.listdir(BOOKS_PATH):
+        if filename.startswith('.'):
+            continue
         stem, ext = os.path.splitext(filename)
-        if ext.lower() == ".txt":
+        if not ext or ext.lower() == ".txt":
             continue
         if _already_converted(filename):
             continue
