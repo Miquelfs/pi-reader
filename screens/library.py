@@ -43,7 +43,7 @@ class LibraryScreen:
         draw = ImageDraw.Draw(img)
 
         # Header
-        draw.rectangle((0, 0, _W, _HEADER_H), fill=0)
+        draw.rectangle((0, 0, _W, _HEADER_H + 4), fill=0)
         draw.text((_MARGIN, 8), "Biblioteca", font=font_title, fill=0xFF)
         draw_battery_icon(draw, x=_W - 68, y=16, inverted=True)
 

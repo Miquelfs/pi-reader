@@ -9,15 +9,19 @@ from utils.text_parser import parse
 
 _W = 480
 _H = 280
-_MARGIN = 14
+_MARGIN = 16
 _TOP = 10
-_BOTTOM_BAR = 18
+_BOTTOM_BAR = 20
 _LINE_H_BODY = 24
-_LINE_H_HEADING = 30
-_GAP_H = 8          # height of a blank gap line
+_LINE_H_HEADING = 32
+_GAP_H = 8
 _TEXT_AREA = _H - _TOP - _BOTTOM_BAR
+_TEXT_W = _W - (_MARGIN * 2)  # usable pixel width for text
 
-LINES_PER_PAGE = 9  # max body lines per page (headings/gaps count differently)
+# Derive character wrap width from the font's average character width.
+# Using 'n' as a representative mid-width character for Literata.
+_CHAR_W = font_medium_18.getlength('n')
+_WRAP_CHARS = max(20, int(_TEXT_W / _CHAR_W))
 
 
 def _load_bookmarks():
@@ -77,7 +81,7 @@ class BookScreenReader:
         with open(os.path.join(LIBRARY_PATH, book_file), 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
 
-        self.pages = _build_pages(parse(content))
+        self.pages = _build_pages(parse(content, wrap_width=_WRAP_CHARS))
         self.total_pages = len(self.pages)
 
         saved = _load_bookmarks().get(book_file, 0)

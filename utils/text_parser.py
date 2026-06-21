@@ -1,6 +1,6 @@
 import textwrap
 
-WRAP_WIDTH = 55
+WRAP_WIDTH = 52        # character estimate — overridden by pixel-aware wrap in reader
 HEADING_MAX_LEN = 60  # longer than this can't be a heading even if uppercase
 
 
@@ -26,7 +26,7 @@ def _is_heading(paragraph):
     return upper_words >= max(1, len(words) * 0.6)
 
 
-def parse(text):
+def parse(text, wrap_width=WRAP_WIDTH):
     """
     Split raw book text into a list of Line objects.
 
@@ -34,6 +34,9 @@ def parse(text):
     - Blank lines in source → one 'gap' Line (rendered as vertical space)
     - Short ALL-CAPS paragraphs → 'heading' Lines (rendered larger)
     - Everything else → word-wrapped 'body' Lines
+
+    wrap_width: character count. Pass a pixel-derived value from the caller
+    for accurate wrapping with proportional fonts.
     """
     lines = []
     paragraphs = text.split('\n')
@@ -66,7 +69,7 @@ def parse(text):
             i += 1
 
         paragraph_text = ' '.join(para_parts)
-        wrapped = textwrap.wrap(paragraph_text, width=WRAP_WIDTH)
+        wrapped = textwrap.wrap(paragraph_text, width=wrap_width)
         for w in wrapped:
             lines.append(Line(w, 'body'))
 
