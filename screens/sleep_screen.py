@@ -15,12 +15,15 @@ def build_sleep_image():
     Uses assets/sleep_logo.png if available, otherwise a plain text fallback.
     """
     if os.path.exists(_LOGO_PATH):
-        img = Image.open(_LOGO_PATH).convert('1')
-        # Overwrite date in bottom-right corner (it changes every day)
+        # Load as RGB so we can draw coloured (grey) date text before converting
+        img = Image.open(_LOGO_PATH).convert('RGB')
         draw = ImageDraw.Draw(img)
         date_str = datetime.now().strftime('%d %b %Y')
-        draw.rectangle((_W - 110, _H - 16, _W, _H), fill=0xFF)
-        draw.text((_W - 108, _H - 14), date_str, font=font_text_10, fill=0)
+        # Overwrite the placeholder date area with today's date
+        # Position matches the text block in extract_logo.py (tx ≈ 265, y=175)
+        draw.rectangle((265, 170, _W - 8, 190), fill=(255, 255, 255))
+        draw.text((265, 174), date_str, font=font_options_24, fill=0)
+        img = img.convert('L').point(lambda p: 0 if p < 200 else 255, '1')
     else:
         # Fallback: plain sleep screen until logo is generated
         img = Image.new('1', (_W, _H), 0xFF)
