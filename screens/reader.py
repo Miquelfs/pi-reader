@@ -32,11 +32,22 @@ def _load_bookmarks():
         return {}
 
 
-def _save_bookmark(book_file, line):
+def _save_bookmark(book_file, page):
     bookmarks = _load_bookmarks()
-    bookmarks[book_file] = line
+    bookmarks[book_file] = page
+    bookmarks['_last_opened'] = book_file
     with open(BOOKMARKS_FILE, 'w') as f:
         json.dump(bookmarks, f)
+
+
+def get_last_opened():
+    """Return (book_file, page) of the last opened book, or (None, 0)."""
+    bookmarks = _load_bookmarks()
+    book = bookmarks.get('_last_opened')
+    if not book:
+        return None, 0
+    page = bookmarks.get(book, 0)
+    return book, page
 
 
 def _build_pages(lines):

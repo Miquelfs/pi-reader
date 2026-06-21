@@ -1,0 +1,14 @@
+[Unit]
+Description=Pi Reader — draw shutdown screen before halt
+DefaultDependencies=no
+Before=shutdown.target reboot.target halt.target
+RequiresMountsFor=/home/miquel/pi-reader
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/python3 /home/miquel/pi-reader/tools/shutdown_screen.py
+TimeoutStartSec=15
+RemainAfterExit=yes
+
+[Install]
+WantedBy=halt.target reboot.target shutdown.target

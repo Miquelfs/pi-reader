@@ -90,7 +90,16 @@ class EReader:
 
     def run(self):
         display.init_display()
-        self.switch_to(MenuScreen)
+
+        # Boot directly into last-read book if one exists
+        from screens.reader import get_last_opened
+        from utils.scanner import get_books_list
+        last_book, last_page = get_last_opened()
+        if last_book and last_book in get_books_list():
+            from screens.reader import BookScreenReader
+            self.switch_to(BookScreenReader, book_file=last_book, start_page=last_page)
+        else:
+            self.switch_to(MenuScreen)
 
         if self._gpio_available:
             # GPIO callbacks handle input — just run the maintenance loop
