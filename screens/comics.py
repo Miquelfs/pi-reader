@@ -79,7 +79,10 @@ class ComicScreen:
                 self.menu = 0
                 self.draw()
         elif key == 'p':
-            pass  # comic viewer — Phase 2
+            if self.books:
+                index = (self.page - 1) * self.page_size + self.menu
+                from screens.comic_reader import ComicReaderScreen
+                self.ereader.switch_to(ComicReaderScreen, comic_file=self.books[index])
         elif key == 'q':
             from screens.librarymenu import LibraryMenuScreen
             self.ereader.switch_to(LibraryMenuScreen)
