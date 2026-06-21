@@ -113,15 +113,24 @@ class EReader:
                 self._check_battery()
                 time.sleep(5)
         else:
-            # Keyboard fallback for development over SSH
-            while self.running:
-                self._check_sleep()
-                self._check_battery()
-                key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
-                if key == 'z':
-                    self.running = False
-                else:
-                    self._handle_key(key)
+            # Keyboard fallback for development over SSH.
+            # When running as a systemd service (no TTY), input() raises EOFError
+            # immediately — fall back to a maintenance-only loop.
+            try:
+                while self.running:
+                    self._check_sleep()
+                    self._check_battery()
+                    key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
+                    if key == 'z':
+                        self.running = False
+                    else:
+                        self._handle_key(key)
+            except EOFError:
+                # No TTY — run as a display-only service, no keyboard input
+                while self.running:
+                    self._check_sleep()
+                    self._check_battery()
+                    time.sleep(5)
 
 
 if __name__ == "__main__":
