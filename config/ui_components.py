@@ -1,34 +1,54 @@
 from config.fonts import font_text_10
 from utils.battery import read_battery_percent
 
-# Battery icon dimensions
-_BAT_W = 24   # outer shell width
-_BAT_H = 12   # outer shell height
-_BAT_TIP = 3  # nub on the right
+_BAT_W = 24
+_BAT_H = 12
+_BAT_TIP = 3
+
+# Cached so every draw() call doesn't hit I2C
+_cached_pct = None
+_cache_calls = 0
+_CACHE_EVERY = 20  # refresh every 20 draw calls (~30-60s at typical usage)
 
 
-def draw_battery_icon(draw, x, y):
+def _get_battery():
+    global _cached_pct, _cache_calls
+    _cache_calls += 1
+    if _cached_pct is None or _cache_calls >= _CACHE_EVERY:
+        _cached_pct = read_battery_percent()
+        _cache_calls = 0
+    return _cached_pct
+
+
+def draw_battery_icon(draw, x, y, inverted=False):
     """
-    Draw a battery icon + percentage text at (x, y) using top-left origin.
-    Reads live from PiSugar2; draws nothing if hardware is absent.
-    Total bounding box is roughly (_BAT_W + _BAT_TIP + 28) x _BAT_H.
+    Draw battery icon + percentage at (x, y).
+    inverted=True for use on black header bars (draws in white).
+    Returns the battery % or None if hardware absent.
     """
-    pct = read_battery_percent()
+    pct = _get_battery()
+    fg = 0xFF if inverted else 0x00
+    bg = 0x00 if inverted else 0xFF
+
     if pct is None:
-        return
+        # Draw a simple placeholder so layout stays consistent
+        draw.text((x, y), "—%", font=font_text_10, fill=fg)
+        return None
 
     # Outer shell
-    draw.rectangle((x, y, x + _BAT_W, y + _BAT_H), outline=0, fill=255)
+    draw.rectangle((x, y, x + _BAT_W, y + _BAT_H), outline=fg, fill=bg)
     # Positive nub
-    nub_top = y + 3
-    nub_bot = y + _BAT_H - 3
-    draw.rectangle((x + _BAT_W, nub_top, x + _BAT_W + _BAT_TIP, nub_bot), fill=0)
-    # Fill bar — 2px padding inside the shell on all sides
+    draw.rectangle((x + _BAT_W, y + 3, x + _BAT_W + _BAT_TIP, y + _BAT_H - 3), fill=fg)
+    # Fill bar
     fill_max = _BAT_W - 4
     fill_w = max(0, int(fill_max * pct / 100))
     if fill_w > 0:
-        draw.rectangle((x + 2, y + 2, x + 2 + fill_w, y + _BAT_H - 2), fill=0)
+        draw.rectangle((x + 2, y + 2, x + 2 + fill_w, y + _BAT_H - 2), fill=fg)
 
-    # Percentage label to the right of the icon
-    label = f"{pct}%"
-    draw.text((x + _BAT_W + _BAT_TIP + 4, y), label, font=font_text_10, fill=0)
+    draw.text((x + _BAT_W + _BAT_TIP + 4, y), f"{pct}%", font=font_text_10, fill=fg)
+    return pct
+
+
+def get_battery_percent():
+    """Return current cached battery %, or None."""
+    return _get_battery()
