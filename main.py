@@ -4,7 +4,9 @@ from config.ui_components import get_battery_percent
 from screens.menu import MenuScreen
 
 # ── GPIO pin assignments (BCM numbering) ─────────────────────────────────────
-# Fill in once buttons are physically wired. Suggested free pins:
+# Set GPIO_ENABLED = True only after buttons are physically wired.
+# Floating (unwired) pins trigger spurious callbacks and cause constant redraws.
+GPIO_ENABLED = False
 PIN_UP     = 17
 PIN_DOWN   = 22
 PIN_SELECT = 23
@@ -28,6 +30,9 @@ class EReader:
         self._setup_gpio()
 
     def _setup_gpio(self):
+        if not GPIO_ENABLED:
+            print("GPIO disabled (GPIO_ENABLED=False) — using keyboard input.")
+            return
         try:
             from gpiozero import Button
             btn_up     = Button(PIN_UP,     pull_up=True, bounce_time=0.05)
