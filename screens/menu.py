@@ -13,7 +13,7 @@ class MenuScreen:
     def __init__(self, ereader):
         self.ereader = ereader
         self.menu = 0
-        self.options = ['Biblioteca', 'Guardats', 'Mode de Lectura', 'Configuració']
+        self.options = ['Biblioteca', 'Guardats', 'Puja un llibre', 'Configuració']
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
@@ -50,12 +50,13 @@ class MenuScreen:
             self.draw()
         elif key == 'p':
             if self.menu == 0:
-                from screens.librarymenu import LibraryMenuScreen
-                self.ereader.switch_to(LibraryMenuScreen)
+                from screens.library import LibraryScreen
+                self.ereader.switch_to(LibraryScreen)
             elif self.menu == 1:
-                from screens.librarymenu import LibraryMenuScreen
-                self.ereader.switch_to(LibraryMenuScreen)
+                from screens.saved_screen import SavedScreen
+                self.ereader.switch_to(SavedScreen)
             elif self.menu == 2:
-                pass  # RSVP — Phase 2
+                from screens.upload_screen import UploadScreen
+                self.ereader.switch_to(UploadScreen)
             elif self.menu == 3:
                 pass  # Configuració — Phase 2

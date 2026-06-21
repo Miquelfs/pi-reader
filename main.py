@@ -70,6 +70,8 @@ class EReader:
 
     def _sleep(self):
         self._sleeping = True
+        from screens.sleep_screen import build_sleep_image
+        display.draw_screen(build_sleep_image())
         display.sleep()
         print("Display sleeping.")
 
@@ -77,6 +79,7 @@ class EReader:
         self._sleeping = False
         display.wake()
         if self.current_screen:
+            display.deep_clear()
             self.current_screen.draw()
 
     def _check_battery(self):

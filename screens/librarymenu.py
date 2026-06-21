@@ -13,7 +13,7 @@ class LibraryMenuScreen:
     def __init__(self, ereader):
         self.ereader = ereader
         self.menu = 0
-        self.options = ['Llibres', 'Còmics', 'Mode de Lectura']
+        self.options = ['Llibres']
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
@@ -49,11 +49,6 @@ class LibraryMenuScreen:
             if self.menu == 0:
                 from screens.library import LibraryScreen
                 self.ereader.switch_to(LibraryScreen)
-            elif self.menu == 1:
-                from screens.comics import ComicScreen
-                self.ereader.switch_to(ComicScreen)
-            elif self.menu == 2:
-                pass  # Mode de lectura — Phase 2
         elif key == 'q':
             from screens.menu import MenuScreen
             self.ereader.switch_to(MenuScreen)

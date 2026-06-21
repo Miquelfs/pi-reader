@@ -74,18 +74,24 @@ def _build_pages(lines):
 
 
 class BookScreenReader:
-    def __init__(self, ereader, book_file):
+    def __init__(self, ereader, book_file, start_page=None):
         self.ereader = ereader
         self.book_file = book_file
 
         with open(os.path.join(LIBRARY_PATH, book_file), 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
 
-        self.pages = _build_pages(parse(content, wrap_width=_WRAP_CHARS))
+        parsed = parse(content, wrap_width=_WRAP_CHARS)
+        self.pages = _build_pages(parsed)
         self.total_pages = len(self.pages)
+        # Flat word list for RSVP — only body text, no gaps/headings
+        self._words = [w for line in parsed if line.kind == 'body' for w in line.text.split()]
 
-        saved = _load_bookmarks().get(book_file, 0)
-        self.current_page = min(saved, self.total_pages - 1)
+        if start_page is not None:
+            self.current_page = min(start_page, self.total_pages - 1)
+        else:
+            saved = _load_bookmarks().get(book_file, 0)
+            self.current_page = min(saved, self.total_pages - 1)
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
@@ -106,9 +112,42 @@ class BookScreenReader:
         draw.line((0, _H - _BOTTOM_BAR, _W, _H - _BOTTOM_BAR), fill=0, width=1)
         progress = f"{self.current_page + 1} / {self.total_pages}"
         draw.text((_MARGIN, _H - 14), progress, font=font_text_10, fill=0)
+        draw.text((_W // 2 - 40, _H - 14), "p=guardar  q=enrere", font=font_text_10, fill=0)
         draw_battery_icon(draw, x=_W - 68, y=_H - 16)
 
         display.draw_screen(img, use_partial=True)
+
+    def _draw_saved_confirmation(self):
+        """Briefly show a 'Guardat!' overlay then redraw the page."""
+        import time
+        img = Image.new('1', (_W, _H), 0xFF)
+        draw = ImageDraw.Draw(img)
+        # Redraw current page content
+        y = _TOP
+        for line in self.pages[self.current_page]:
+            if line.kind == 'gap':
+                y += _GAP_H
+            elif line.kind == 'heading':
+                draw.text((_MARGIN, y), line.text, font=font_options_24, fill=0)
+                y += _LINE_H_HEADING
+            else:
+                draw.text((_MARGIN, y), line.text, font=font_medium_18, fill=0)
+                y += _LINE_H_BODY
+        # Overlay banner
+        draw.rectangle((80, 100, 400, 148), fill=0)
+        draw.text((130, 112), "Fragment guardat ✓", font=font_options_24, fill=0xFF)
+        display.draw_screen(img)
+        time.sleep(1.2)
+        self.draw()
+
+    def _approx_word_for_page(self):
+        """Estimate which word index corresponds to the start of the current page."""
+        words_before = 0
+        for page in self.pages[:self.current_page]:
+            for line in page:
+                if line.kind == 'body':
+                    words_before += len(line.text.split())
+        return words_before
 
     def handle_key(self, key):
         if key == 's':  # next page
@@ -119,6 +158,11 @@ class BookScreenReader:
             if self.current_page > 0:
                 self.current_page -= 1
                 self.draw()
+        elif key == 'p':  # save highlight of current page
+            from screens.saved_screen import save_highlight
+            save_highlight(self.book_file, self.pages[self.current_page], self.current_page)
+            self._draw_saved_confirmation()
+            return
         elif key == 'q':
             _save_bookmark(self.book_file, self.current_page)
             from screens.library import LibraryScreen
