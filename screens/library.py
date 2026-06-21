@@ -99,5 +99,5 @@ class LibraryScreen:
                 from screens.reader import BookScreenReader
                 self.ereader.switch_to(BookScreenReader, book_file=self.books[index])
         elif key == 'q':
-            from screens.librarymenu import LibraryMenuScreen
-            self.ereader.switch_to(LibraryMenuScreen)
+            from screens.menu import MenuScreen
+            self.ereader.switch_to(MenuScreen)

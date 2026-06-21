@@ -1,0 +1,17 @@
+[Unit]
+Description=Pi Reader — e-ink book reader
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+User=miquel
+WorkingDirectory=/home/miquel/pi-reader
+ExecStart=/usr/bin/python3 /home/miquel/pi-reader/main.py
+Restart=on-failure
+RestartSec=5
+StandardOutput=append:/home/miquel/pi-reader/logs/reader.log
+StandardError=append:/home/miquel/pi-reader/logs/reader.log
+
+[Install]
+WantedBy=multi-user.target

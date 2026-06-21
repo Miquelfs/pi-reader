@@ -123,7 +123,7 @@ class BookScreenReader:
         draw.line((0, _H - _BOTTOM_BAR, _W, _H - _BOTTOM_BAR), fill=0, width=1)
         progress = f"{self.current_page + 1} / {self.total_pages}"
         draw.text((_MARGIN, _H - 14), progress, font=font_text_10, fill=0)
-        draw.text((_W // 2 - 40, _H - 14), "p=guardar  q=enrere", font=font_text_10, fill=0)
+        draw.text((_W // 2 - 40, _H - 14), "p=opcions  q=enrere", font=font_text_10, fill=0)
         draw_battery_icon(draw, x=_W - 68, y=_H - 16)
 
         display.draw_screen(img, use_partial=True)
@@ -169,10 +169,9 @@ class BookScreenReader:
             if self.current_page > 0:
                 self.current_page -= 1
                 self.draw()
-        elif key == 'p':  # save highlight of current page
-            from screens.saved_screen import save_highlight
-            save_highlight(self.book_file, self.pages[self.current_page], self.current_page)
-            self._draw_saved_confirmation()
+        elif key == 'p':  # open reader action menu (save / RSVP)
+            from screens.reader_menu import ReaderMenuScreen
+            self.ereader.current_screen = ReaderMenuScreen(self.ereader, self)
             return
         elif key == 'q':
             _save_bookmark(self.book_file, self.current_page)
