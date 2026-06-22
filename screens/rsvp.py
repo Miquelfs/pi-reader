@@ -72,9 +72,9 @@ class RSVPScreen:
 
         # Footer controls
         draw.line((0, _H - 20, _W, _H - 20), fill=0, width=1)
-        status = "▶ a reproduir" if self._playing else "⏸ pausat"
+        status = "▶ playing" if self._playing else "⏸ paused"
         draw.text((16, _H - 16), status, font=font_text_10, fill=0)
-        draw.text((_W - 200, _H - 16), "p=pausa  w/s=vel  q=sortir", font=font_text_10, fill=0)
+        draw.text((_W - 210, _H - 16), "p=pause  w/s=speed  q=exit", font=font_text_10, fill=0)
 
         display.draw_screen(img)
 

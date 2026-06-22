@@ -5,7 +5,7 @@ from datetime import datetime
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_medium_18, font_text_10
-from config.ui_components import draw_header
+from config.ui_components import draw_header, draw_footer
 from config.paths import BASE_DIR
 
 _W = 480
@@ -30,14 +30,23 @@ def save_highlight(book_file, page_lines, page_num):
     text = ' '.join(l.text for l in page_lines if l.kind == 'body')
     if not text.strip():
         return
+    stem = os.path.splitext(book_file)[0]
+    date_str = datetime.now().strftime('%d %b %Y')
     highlights.append({
-        'book': os.path.splitext(book_file)[0],
+        'book': stem,
         'page': page_num,
         'text': text[:300],
-        'date': datetime.now().strftime('%d %b %Y'),
+        'date': date_str,
     })
     with open(HIGHLIGHTS_FILE, 'w', encoding='utf-8') as f:
         json.dump(highlights, f, ensure_ascii=False, indent=2)
+    # Push to Daybook in background — fire and forget
+    try:
+        from utils.daybook_sync import push_highlight
+        from datetime import date as _date
+        push_highlight(stem, page_num, text[:300], _date.today().isoformat())
+    except Exception:
+        pass
 
 
 class SavedScreen:
@@ -51,17 +60,16 @@ class SavedScreen:
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        draw_header(draw, "Guardats", w=_W, h=_HEADER_H)
+        draw_header(draw, "Highlights", w=_W, h=_HEADER_H)
 
         if not self.highlights:
-            draw.text((_MARGIN, _HEADER_H + 24), "Cap fragment guardat.", font=font_medium_18, fill=0)
-            draw.text((_MARGIN, _HEADER_H + 50), "Prem 'p' mentre llegeixes", font=font_medium_18, fill=0)
-            draw.text((_MARGIN, _HEADER_H + 74), "per guardar la pàgina actual.", font=font_medium_18, fill=0)
+            draw.text((_MARGIN, _HEADER_H + 40), "No highlights saved yet.", font=font_medium_18, fill=0)
+            draw.text((_MARGIN, _HEADER_H + 66), "Press p while reading to save a page.", font=font_text_10, fill=0)
         else:
             h = self.highlights[self.index]
             top = _HEADER_H + 8
 
-            meta = f"{h['book']}  ·  pàg. {h['page'] + 1}  ·  {h['date']}"
+            meta = f"{h['book']}  ·  p.{h['page'] + 1}  ·  {h['date']}"
             draw.text((_MARGIN, top), meta, font=font_text_10, fill=0)
             draw.line((_MARGIN, top + 14, _W - _MARGIN, top + 14), fill=0, width=1)
 
@@ -74,14 +82,11 @@ class SavedScreen:
                 draw.text((_MARGIN, y), line, font=font_medium_18, fill=0)
                 y += 22
 
-        # Footer
-        draw.line((0, _H - _FOOTER_H, _W, _H - _FOOTER_H), fill=0, width=1)
         if self.highlights:
             counter = f"{self.index + 1} / {len(self.highlights)}"
-            draw.text((_MARGIN, _H - 14), counter, font=font_text_10, fill=0)
-            draw.text((_W // 2 - 50, _H - 14), "w/s=navegar   q=enrere", font=font_text_10, fill=0)
+            draw_footer(draw, counter, "w/s = navigate   q = back", w=_W, h=_H, margin=_MARGIN)
         else:
-            draw.text((_MARGIN, _H - 14), "q=enrere", font=font_text_10, fill=0)
+            draw_footer(draw, "", "q = back", w=_W, h=_H, margin=_MARGIN)
 
         display.draw_screen(img)
 

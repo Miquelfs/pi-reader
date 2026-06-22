@@ -1,19 +1,20 @@
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_options_24, font_text_10
-from config.ui_components import draw_header
+from config.fonts import font_options_24
+from config.ui_components import draw_header, draw_footer
 
 _W = 480
 _H = 280
 _MARGIN = 28
 _HEADER_H = 44
+_ITEM_H = 38
 
 
 class MenuScreen:
     def __init__(self, ereader, start_index=0):
         self.ereader = ereader
         self.menu = start_index
-        self.options = ['Biblioteca', 'Guardats', 'Puja un llibre', 'Configuració']
+        self.options = ['Library', 'Highlights', 'Statistics', 'Upload', 'Settings']
         self.draw()
 
     def draw(self):
@@ -22,20 +23,16 @@ class MenuScreen:
 
         draw_header(draw, "Pi Reader", w=_W, h=_HEADER_H)
 
-        # Menu items
-        item_h = 44
         top = _HEADER_H + 6
         for i, opt in enumerate(self.options):
-            y = top + i * item_h
+            y = top + i * _ITEM_H
             if i == self.menu:
-                draw.rectangle((0, y + 2, 5, y + item_h - 4), fill=0)
-                draw.text((_MARGIN + 10, y + 10), opt, font=font_options_24, fill=0)
+                draw.rectangle((0, y, _W, y + _ITEM_H - 2), fill=0)
+                draw.text((_MARGIN, y + 10), opt, font=font_options_24, fill=0xFF)
             else:
-                draw.text((_MARGIN + 10, y + 10), opt, font=font_options_24, fill=0)
+                draw.text((_MARGIN, y + 10), opt, font=font_options_24, fill=0)
 
-        # Footer
-        draw.line((0, _H - 18, _W, _H - 18), fill=0, width=1)
-        draw.text((_MARGIN, _H - 14), "w/s=navegar   p=obrir", font=font_text_10, fill=0)
+        draw_footer(draw, "w/s = navigate", "p = open", w=_W, h=_H, margin=_MARGIN)
 
         display.draw_screen(img, use_partial=True)
 
@@ -47,15 +44,19 @@ class MenuScreen:
             self.menu = min(len(self.options) - 1, self.menu + 1)
             self.draw()
         elif key == 'p':
-            if self.menu == 0:
+            selected = self.options[self.menu]
+            if selected == 'Library':
                 from screens.library import LibraryScreen
                 self.ereader.switch_to(LibraryScreen)
-            elif self.menu == 1:
+            elif selected == 'Highlights':
                 from screens.saved_screen import SavedScreen
                 self.ereader.switch_to(SavedScreen)
-            elif self.menu == 2:
+            elif selected == 'Statistics':
+                from screens.stats_screen import StatsScreen
+                self.ereader.switch_to(StatsScreen)
+            elif selected == 'Upload':
                 from screens.upload_screen import UploadScreen
                 self.ereader.switch_to(UploadScreen)
-            elif self.menu == 3:
+            elif selected == 'Settings':
                 from screens.config_screen import ConfigScreen
                 self.ereader.switch_to(ConfigScreen)

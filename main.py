@@ -1,4 +1,5 @@
 import time
+import threading
 from config.display_manager import display
 from screens.menu import MenuScreen
 
@@ -12,10 +13,8 @@ PIN_SELECT = 23
 PIN_BACK   = 27
 # ─────────────────────────────────────────────────────────────────────────────
 
-# Auto-sleep: shut down display after this many seconds of inactivity
-SLEEP_AFTER_S = 300  # 5 minutes; set to None to disable
-
-# Battery warning threshold (%)
+# Auto-sleep default (overridden by content/config.json at runtime)
+SLEEP_AFTER_S = 300
 
 
 class EReader:
@@ -25,6 +24,7 @@ class EReader:
         self._last_activity = time.time()
         self._sleeping = False
         self._gpio_available = False
+        self._clock_stop = threading.Event()
         self._setup_gpio()
 
     def _setup_gpio(self):
@@ -65,10 +65,15 @@ class EReader:
         self._last_activity = time.time()
         self._sleeping = False
 
+    def _sleep_timeout(self):
+        try:
+            from utils.config_manager import get
+            return get('sleep_timeout_min', 5) * 60
+        except Exception:
+            return SLEEP_AFTER_S
+
     def _check_sleep(self):
-        if SLEEP_AFTER_S is None:
-            return
-        if not self._sleeping and time.time() - self._last_activity > SLEEP_AFTER_S:
+        if not self._sleeping and time.time() - self._last_activity > self._sleep_timeout():
             self._sleep()
 
     def _sleep(self):
@@ -77,8 +82,25 @@ class EReader:
         display.draw_screen(build_sleep_image())
         display.sleep()
         print("Display sleeping.")
+        # Refresh the clock every 60s while sleeping
+        self._clock_stop.clear()
+        t = threading.Thread(target=self._clock_loop, daemon=True)
+        t.start()
+
+    def _clock_loop(self):
+        from screens.sleep_screen import build_sleep_image
+        while not self._clock_stop.wait(timeout=60):
+            if not self._sleeping:
+                break
+            try:
+                display.wake()
+                display.draw_screen(build_sleep_image())
+                display.sleep()
+            except Exception as e:
+                print(f"Clock refresh error: {e}")
 
     def _wake(self):
+        self._clock_stop.set()
         self._sleeping = False
         display.wake()
         if self.current_screen:
@@ -95,7 +117,7 @@ class EReader:
             from screens.reader import get_last_opened
             from utils.scanner import get_books_list
             last_book, last_page = get_last_opened()
-            if last_book and last_book in get_books_list():
+            if last_book and last_book in [b.filename for b in get_books_list()]:
                 from screens.reader import BookScreenReader
                 self.switch_to(BookScreenReader, book_file=last_book, start_page=last_page)
             else:
