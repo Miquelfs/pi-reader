@@ -51,19 +51,21 @@ class LibraryScreen:
         start = (self.page - 1) * self.page_size
         current_books = self.books[start:start + self.page_size]
         item_h = 32
-        top = _HEADER_H + 6
+        top = _HEADER_H + 8
 
         if not current_books:
             draw.text((_MARGIN, top + 32), "No hi ha llibres a la biblioteca.", font=font_medium_18, fill=0)
         else:
             for i, book in enumerate(current_books):
                 y = top + i * item_h
-                label = _truncate(draw, _clean_name(book), font_medium_18, _MAX_TITLE_W)
+                label = _truncate(draw, _clean_name(book), font_medium_18, _MAX_TITLE_W - 20)
                 if i == self.menu:
-                    draw.rectangle((_MARGIN - 4, y - 2, _W - _MARGIN, y + item_h - 4), fill=0)
-                    draw.text((_MARGIN + 4, y), label, font=font_medium_18, fill=0xFF)
+                    draw.rectangle((0, y - 2, _W, y + item_h - 4), fill=0)
+                    draw.text((_MARGIN, y + 1), f"› {label}", font=font_medium_18, fill=0xFF)
                 else:
-                    draw.text((_MARGIN + 4, y), label, font=font_medium_18, fill=0)
+                    draw.text((_MARGIN, y + 1), f"  {label}", font=font_medium_18, fill=0)
+                if i < len(current_books) - 1:
+                    draw.line((_MARGIN, y + item_h - 4), (_W - _MARGIN, y + item_h - 4), fill=0, width=1)
 
         # Footer — page indicator
         draw.line((0, _H - _FOOTER_H, _W, _H - _FOOTER_H), fill=0, width=1)

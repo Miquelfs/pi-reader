@@ -24,20 +24,24 @@ class MenuScreen:
         draw.text((_MARGIN, 8), "Pi Reader", font=font_title, fill=0xFF)
         draw_battery_icon(draw, x=_W - 68, y=16, inverted=True)
 
-        # Menu items — inverted highlight on selected row
-        item_h = 36
-        top = _HEADER_H + 8
+        # Menu items
+        item_h = 40
+        top = _HEADER_H + 10
         for i, opt in enumerate(self.options):
             y = top + i * item_h
             if i == self.menu:
-                draw.rectangle((_MARGIN - 4, y - 2, _W - _MARGIN, y + item_h - 6), fill=0)
-                draw.text((_MARGIN + 4, y), opt, font=font_options_24, fill=0xFF)
+                draw.rectangle((0, y - 2, _W, y + item_h - 4), fill=0)
+                draw.text((_MARGIN, y + 2), f"› {opt}", font=font_options_24, fill=0xFF)
             else:
-                draw.text((_MARGIN + 4, y), opt, font=font_options_24, fill=0)
+                draw.text((_MARGIN, y + 2), f"  {opt}", font=font_options_24, fill=0)
+            # Separator line between items (not after last)
+            if i < len(self.options) - 1:
+                sep_y = y + item_h - 4
+                draw.line((_MARGIN, sep_y, _W - _MARGIN, sep_y), fill=0, width=1)
 
         # Footer rule
         draw.line((0, _H - 16, _W, _H - 16), fill=0, width=1)
-        draw.text((_MARGIN, _H - 14), "p=select  q=back", font=font_text_10, fill=0)
+        draw.text((_MARGIN, _H - 14), "w/s=navegar  p=seleccionar", font=font_text_10, fill=0)
 
         display.draw_screen(img, use_partial=True)
 

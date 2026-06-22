@@ -61,12 +61,22 @@ def parse(text, wrap_width=WRAP_WIDTH):
             i += 1
             continue
 
-        # Accumulate a multi-line paragraph (lines with no blank between them)
+        # Accumulate a multi-line paragraph (lines with no blank between them).
+        # Calibre txt output often hard-wraps at 80 chars — we detect mid-sentence
+        # line breaks (line doesn't end with sentence-ending punctuation) and join them.
         para_parts = [raw]
         i += 1
-        while i < len(paragraphs) and paragraphs[i].rstrip() != '':
-            para_parts.append(paragraphs[i].rstrip())
-            i += 1
+        while i < len(paragraphs):
+            next_raw = paragraphs[i].rstrip()
+            if next_raw == '':
+                break
+            # Join if previous line ends mid-word/mid-sentence (no terminal punctuation)
+            prev = para_parts[-1]
+            if prev and prev[-1] not in '.!?:"”’':
+                para_parts.append(next_raw)
+                i += 1
+            else:
+                break
 
         paragraph_text = ' '.join(para_parts)
         wrapped = textwrap.wrap(paragraph_text, width=wrap_width)
