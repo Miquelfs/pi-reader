@@ -96,13 +96,18 @@ class EReader:
     def run(self):
         display.init_display()
 
-        # Boot directly into last-read book if one exists
-        from screens.reader import get_last_opened
-        from utils.scanner import get_books_list
-        last_book, last_page = get_last_opened()
-        if last_book and last_book in get_books_list():
-            from screens.reader import BookScreenReader
-            self.switch_to(BookScreenReader, book_file=last_book, start_page=last_page)
+        # Boot into last-read book only when running as a systemd service.
+        # Interactive SSH sessions (no JOURNAL_STREAM) always start at the menu.
+        import os
+        if 'JOURNAL_STREAM' in os.environ:
+            from screens.reader import get_last_opened
+            from utils.scanner import get_books_list
+            last_book, last_page = get_last_opened()
+            if last_book and last_book in get_books_list():
+                from screens.reader import BookScreenReader
+                self.switch_to(BookScreenReader, book_file=last_book, start_page=last_page)
+            else:
+                self.switch_to(MenuScreen)
         else:
             self.switch_to(MenuScreen)
 
