@@ -57,29 +57,32 @@ class MenuScreen:
             last = None
 
         rx = _SPLIT_X + 16
-        ry = _HEADER_H + 12
+        ry = _HEADER_H + 10
+        panel_w = _W - rx - 12
 
-        # Streak
-        streak_val = f"{streak} day{'s' if streak != 1 else ''}" if streak else "—"
-        streak_label = "streak" if did_read else "read today?"
-        draw.text((rx, ry), streak_val, font=font_medium_18, fill=0)
-        draw.text((rx, ry + 22), streak_label, font=font_text_10, fill=0)
+        def _stat(val, lbl, y):
+            draw.text((rx, y), val, font=font_options_24, fill=0)
+            bb = font_options_24.getbbox(val)
+            draw.text((rx, y + (bb[3] - bb[1]) + 2), lbl, font=font_text_10, fill=0)
 
-        draw.line((rx, ry + 36, _W - 16, ry + 36), fill=0, width=1)
+        streak_val = f"{streak}" if streak else "—"
+        streak_lbl = f"day{'s' if streak != 1 else ''} streak" + (" ✓" if did_read else "  read today?")
+        _stat(streak_val, streak_lbl, ry)
 
-        # Total pages + hours
-        draw.text((rx, ry + 44), f"{pages:,} pages", font=font_medium_18, fill=0)
-        draw.text((rx, ry + 66), f"{hours:.1f} h reading", font=font_text_10, fill=0)
+        draw.line((rx, ry + 46, _W - 12, ry + 46), fill=0, width=1)
 
-        draw.line((rx, ry + 80, _W - 16, ry + 80), fill=0, width=1)
+        _stat(f"{pages:,}", "pages read", ry + 54)
 
-        # Last session
+        draw.line((rx, ry + 100, _W - 12, ry + 100), fill=0, width=1)
+
         if last:
-            book_short = last['book'][:18] + '…' if len(last['book']) > 18 else last['book']
-            draw.text((rx, ry + 88), "Last read:", font=font_text_10, fill=0)
-            draw.text((rx, ry + 100), book_short, font=font_text_10, fill=0)
+            book_short = last['book']
+            while book_short and draw.textlength(book_short, font=font_text_10) > panel_w:
+                book_short = book_short[:-1]
+            draw.text((rx, ry + 108), "last read", font=font_text_10, fill=0)
+            draw.text((rx, ry + 120), book_short, font=font_text_10, fill=0)
         else:
-            draw.text((rx, ry + 88), "No sessions yet.", font=font_text_10, fill=0)
+            draw.text((rx, ry + 108), "no sessions yet", font=font_text_10, fill=0)
 
         draw_footer(draw, "w/s = navigate", "p = open", w=_W, h=_H, margin=_MARGIN)
 
