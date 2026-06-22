@@ -1,5 +1,4 @@
 import time
-import threading
 from config.display_manager import display
 from screens.menu import MenuScreen
 
@@ -24,7 +23,6 @@ class EReader:
         self._last_activity = time.time()
         self._sleeping = False
         self._gpio_available = False
-        self._clock_stop = threading.Event()
         self._setup_gpio()
 
     def _setup_gpio(self):
@@ -82,25 +80,8 @@ class EReader:
         display.draw_screen(build_sleep_image())
         display.sleep()
         print("Display sleeping.")
-        # Refresh the clock every 60s while sleeping
-        self._clock_stop.clear()
-        t = threading.Thread(target=self._clock_loop, daemon=True)
-        t.start()
-
-    def _clock_loop(self):
-        from screens.sleep_screen import build_sleep_image
-        while not self._clock_stop.wait(timeout=60):
-            if not self._sleeping:
-                break
-            try:
-                display.wake()
-                display.draw_screen(build_sleep_image())
-                display.sleep()
-            except Exception as e:
-                print(f"Clock refresh error: {e}")
 
     def _wake(self):
-        self._clock_stop.set()
         self._sleeping = False
         display.wake()
         if self.current_screen:

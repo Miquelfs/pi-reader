@@ -29,20 +29,20 @@ def build_sleep_image():
     # White out the entire right panel so we draw fresh every call
     draw.rectangle((_SPLIT_X, 0, _W, _H), fill=0xFF)
 
-    # ── Time ──────────────────────────────────────────────────────────────────
-    time_str = now.strftime('%H:%M')
-    time_w = int(font_title.getlength(time_str))
-    time_x = _SPLIT_X + (_RIGHT_W - time_w) // 2
-    draw.text((time_x, 28), time_str, font=font_title, fill=0)
+    # ── Name ──────────────────────────────────────────────────────────────────
+    name = "Pi Reader"
+    name_w = int(font_options_24.getlength(name))
+    name_x = _SPLIT_X + (_RIGHT_W - name_w) // 2
+    draw.text((name_x, 40), name, font=font_options_24, fill=0)
 
     # ── Date ──────────────────────────────────────────────────────────────────
     date_str = now.strftime('%a, %d %b %Y')
     date_w = int(font_text_10.getlength(date_str))
     date_x = _SPLIT_X + (_RIGHT_W - date_w) // 2
-    draw.text((date_x, 80), date_str, font=font_text_10, fill=0)
+    draw.text((date_x, 74), date_str, font=font_text_10, fill=0)
 
     # Thin separator
-    draw.line((_RIGHT_X, 98, _W - 12, 98), fill=0, width=1)
+    draw.line((_RIGHT_X, 92, _W - 12, 92), fill=0, width=1)
 
     # ── Streak ────────────────────────────────────────────────────────────────
     try:
@@ -53,7 +53,7 @@ def build_sleep_image():
         streak = 0
         did_read = False
 
-    y_streak = 108
+    y_streak = 104
     if streak > 0:
         streak_label = f"{streak} day{'s' if streak != 1 else ''}"
         sl_w = int(font_medium_18.getlength(streak_label))
