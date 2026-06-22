@@ -74,6 +74,7 @@ class RaspberryPi:
         self.GPIO.setwarnings(False)
         self.GPIO.setup(self.RST_PIN,  self.GPIO.OUT)
         self.GPIO.setup(self.DC_PIN,   self.GPIO.OUT)
+        self.GPIO.setup(self.CS_PIN,   self.GPIO.OUT)
         self.GPIO.setup(self.PWR_PIN,  self.GPIO.OUT)
         self.GPIO.setup(self.BUSY_PIN, self.GPIO.IN)
         self.GPIO.output(self.PWR_PIN, 1)
@@ -91,7 +92,7 @@ class RaspberryPi:
         self.GPIO.output(self.PWR_PIN, 0)
         logger.debug("close 5V, Module enters 0 power consumption ...")
         if cleanup:
-            self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.PWR_PIN, self.BUSY_PIN])
+            self.GPIO.cleanup([self.RST_PIN, self.DC_PIN, self.CS_PIN, self.PWR_PIN, self.BUSY_PIN])
 
         
 
