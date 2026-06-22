@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(gs --version)",
+      "Bash(mutool --version)",
+      "Read(//usr/local/bin/**)",
+      "Bash(brew list *)",
+      "Read(//var/folders/hk/00l6bn_s4l9_g89tzgnm9gfc0000gn/T/TemporaryItems/NSIRD_screencaptureui_FH2p1J/**)",
+      "Read(//private/var/folders/hk/00l6bn_s4l9_g89tzgnm9gfc0000gn/T/TemporaryItems/NSIRD_screencaptureui_FH2p1J/**)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}

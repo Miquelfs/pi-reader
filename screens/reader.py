@@ -3,7 +3,6 @@ import json
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_medium_18, font_options_24, font_text_10
-from config.ui_components import draw_battery_icon
 from config.paths import LIBRARY_PATH, BOOKMARKS_FILE
 from utils.text_parser import parse
 
@@ -124,7 +123,6 @@ class BookScreenReader:
         progress = f"{self.current_page + 1} / {self.total_pages}"
         draw.text((_MARGIN, _H - 14), progress, font=font_text_10, fill=0)
         draw.text((_W // 2 - 40, _H - 14), "p=opcions  q=enrere", font=font_text_10, fill=0)
-        draw_battery_icon(draw, x=_W - 68, y=_H - 16)
 
         display.draw_screen(img, use_partial=True)
 

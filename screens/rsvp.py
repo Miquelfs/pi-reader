@@ -3,7 +3,6 @@ import threading
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_title, font_options_24, font_text_10
-from config.ui_components import draw_battery_icon
 
 _W = 480
 _H = 280
@@ -49,7 +48,7 @@ class RSVPScreen:
         draw.text((16, 10), "RSVP", font=font_title, fill=0xFF)
         wpm = _WPM_OPTIONS[self._wpm_idx]
         draw.text((_W - 90, 10), f"{wpm} WPM", font=font_options_24, fill=0xFF)
-        draw_battery_icon(draw, x=_W - 68, y=34, inverted=True)
+
 
         # Central word — large, centred
         word = self.words[self.current_word] if self.words else '—'

@@ -1,6 +1,5 @@
 import time
 from config.display_manager import display
-from config.ui_components import get_battery_percent
 from screens.menu import MenuScreen
 
 # ── GPIO pin assignments (BCM numbering) ─────────────────────────────────────
@@ -17,7 +16,6 @@ PIN_BACK   = 27
 SLEEP_AFTER_S = 300  # 5 minutes; set to None to disable
 
 # Battery warning threshold (%)
-LOW_BATTERY_WARN = 15
 
 
 class EReader:
@@ -87,12 +85,6 @@ class EReader:
             display.deep_clear()
             self.current_screen.draw()
 
-    def _check_battery(self):
-        pct = get_battery_percent()
-        if pct is not None and pct <= LOW_BATTERY_WARN:
-            print(f"LOW BATTERY: {pct}%")
-            # TODO: overlay a low-battery warning on current screen
-
     def run(self):
         display.init_display()
 
@@ -112,29 +104,21 @@ class EReader:
             self.switch_to(MenuScreen)
 
         if self._gpio_available:
-            # GPIO callbacks handle input — just run the maintenance loop
             while self.running:
                 self._check_sleep()
-                self._check_battery()
                 time.sleep(5)
         else:
-            # Keyboard fallback for development over SSH.
-            # When running as a systemd service (no TTY), input() raises EOFError
-            # immediately — fall back to a maintenance-only loop.
             try:
                 while self.running:
                     self._check_sleep()
-                    self._check_battery()
                     key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
                     if key == 'z':
                         self.running = False
                     else:
                         self._handle_key(key)
             except EOFError:
-                # No TTY — run as a display-only service, no keyboard input
                 while self.running:
                     self._check_sleep()
-                    self._check_battery()
                     time.sleep(5)
 
 
