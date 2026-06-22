@@ -51,13 +51,15 @@ class RaspberryPi:
     def __init__(self):
         import spidev
         import gpiozero
-        
+        from gpiozero.pins.rpigpio import RPiGPIOFactory
+        factory = RPiGPIOFactory()
+
         self.SPI = spidev.SpiDev()
-        self.GPIO_RST_PIN    = gpiozero.LED(self.RST_PIN)
-        self.GPIO_DC_PIN     = gpiozero.LED(self.DC_PIN)
-        # self.GPIO_CS_PIN     = gpiozero.LED(self.CS_PIN)
-        self.GPIO_PWR_PIN    = gpiozero.LED(self.PWR_PIN)
-        self.GPIO_BUSY_PIN   = gpiozero.Button(self.BUSY_PIN, pull_up = False)
+        self.GPIO_RST_PIN    = gpiozero.LED(self.RST_PIN,  pin_factory=factory)
+        self.GPIO_DC_PIN     = gpiozero.LED(self.DC_PIN,   pin_factory=factory)
+        # self.GPIO_CS_PIN     = gpiozero.LED(self.CS_PIN, pin_factory=factory)
+        self.GPIO_PWR_PIN    = gpiozero.LED(self.PWR_PIN,  pin_factory=factory)
+        self.GPIO_BUSY_PIN   = gpiozero.Button(self.BUSY_PIN, pull_up=False, pin_factory=factory)
 
         
 
