@@ -11,7 +11,7 @@ from config.paths import BASE_DIR
 _W = 480
 _H = 280
 _MARGIN = 28
-_HEADER_H = 48
+_HEADER_H = 54
 _FOOTER_H = 18
 
 HIGHLIGHTS_FILE = os.path.join(BASE_DIR, 'content', 'highlights.json')

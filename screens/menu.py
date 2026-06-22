@@ -6,7 +6,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 28
-_HEADER_H = 48
+_HEADER_H = 54
 _ITEM_H = 36
 
 
@@ -23,10 +23,15 @@ class MenuScreen:
 
         draw_header(draw, "Pi Reader", w=_W, h=_HEADER_H)
 
+        # Measure once: actual rendered bounds of font_options_24 text
+        _bb = font_options_24.getbbox("Ag")
+        _text_h = _bb[3] - _bb[1]
+        _text_offset = _bb[1]  # negative ascender offset PIL applies at draw.text
+
         top = _HEADER_H + 6
         for i, opt in enumerate(self.options):
             y = top + i * _ITEM_H
-            text_y = y + (_ITEM_H - 24) // 2
+            text_y = y + (_ITEM_H - _text_h) // 2 - _text_offset
             if i == self.menu:
                 draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
                 draw.text((_MARGIN, text_y), opt, font=font_options_24, fill=0)

@@ -8,7 +8,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 28
-_HEADER_H = 48
+_HEADER_H = 54
 
 _server_thread = None
 _poll_thread = None

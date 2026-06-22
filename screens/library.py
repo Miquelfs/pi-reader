@@ -8,7 +8,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 16
-_HEADER_H = 48
+_HEADER_H = 54
 _FOOTER_H = 18
 _PAGE_SIZE = 5
 _ITEM_H = 42          # room for 2-line items
