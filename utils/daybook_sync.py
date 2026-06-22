@@ -75,6 +75,27 @@ def sync_book(title, author='', pages=None, date_finished=None, notes=''):
     threading.Thread(target=_run, daemon=True).start()
 
 
+def sync_stats(streak, pages, words, hours, avg_spp, rsvp_words, rsvp_pct):
+    """Push reading stats to Daybook as a note on today's day entry. Background thread."""
+    def _run():
+        today = date.today().isoformat()
+        note = (
+            f"Pi Reader stats ({today}): "
+            f"{streak} day streak, "
+            f"{pages:,} pages, "
+            f"{words:,} words, "
+            f"{hours:.1f} h reading, "
+            f"{avg_spp:.0f} s/page avg, "
+            f"{rsvp_words:,} RSVP words ({rsvp_pct:.0f}% of time)"
+        )
+        result = _post(f'/days/{today}', {'notes': note})
+        if result:
+            print(f"[daybook] Stats synced for {today}")
+        else:
+            print(f"[daybook] Stats sync failed for {today}")
+    threading.Thread(target=_run, daemon=True).start()
+
+
 def push_highlight(book_title, page_num, text, date_str=None):
     """Push a highlight to Daybook's book_highlights table. Runs in background."""
     if not date_str:
