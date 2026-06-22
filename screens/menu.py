@@ -1,7 +1,7 @@
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_title, font_options_24, font_text_10
-from config.ui_components import draw_battery_icon
+from config.fonts import font_options_24, font_text_10
+from config.ui_components import draw_header
 
 _W = 480
 _H = 280
@@ -20,13 +20,7 @@ class MenuScreen:
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Header: title text with black fill behind it only, battery right
-        title = "Pi Reader"
-        tw = int(font_title.getlength(title))
-        draw.rectangle((_MARGIN - 6, 6, _MARGIN + tw + 6, _HEADER_H - 6), fill=0)
-        draw.text((_MARGIN, 8), title, font=font_title, fill=0xFF)
-        draw_battery_icon(draw, x=_W - 72, y=14)
-        draw.line((0, _HEADER_H, _W, _HEADER_H), fill=0, width=1)
+        draw_header(draw, "Pi Reader", w=_W, h=_HEADER_H)
 
         # Menu items
         item_h = 44

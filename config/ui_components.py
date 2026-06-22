@@ -1,4 +1,4 @@
-from config.fonts import font_text_10
+from config.fonts import font_text_10, font_options_24
 from utils.battery import read_battery_percent
 
 _BAT_W = 24
@@ -52,3 +52,14 @@ def draw_battery_icon(draw, x, y, inverted=False):
 def get_battery_percent():
     """Return current cached battery %, or None."""
     return _get_battery()
+
+
+def draw_header(draw, title, w=480, h=40):
+    """
+    Draw a full-width black header bar with title (white) and battery (white).
+    Returns the bottom y coordinate of the header.
+    """
+    draw.rectangle((0, 0, w, h), fill=0)
+    draw.text((16, (h - 24) // 2), title, font=font_options_24, fill=0xFF)
+    draw_battery_icon(draw, x=w - 72, y=(h - 12) // 2, inverted=True)
+    return h
