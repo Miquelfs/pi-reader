@@ -6,7 +6,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 28
-_HEADER_H = 44
+_HEADER_H = 48
 _ROW_H = 32
 
 

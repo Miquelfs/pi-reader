@@ -6,7 +6,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 16
-_HEADER_H = 40
+_HEADER_H = 48
 _PAGE_SIZE = 6
 _ITEM_H = 34
 
@@ -51,9 +51,9 @@ class TocScreen:
             page_label_w = int(font_text_10.getlength(page_label))
 
             if i == self.menu:
-                draw.rectangle((0, y, _W, y + _ITEM_H - 2), fill=0)
-                draw.text((_MARGIN, y + 8), label, font=font_medium_18, fill=0xFF)
-                draw.text((_W - _MARGIN - page_label_w, y + 11), page_label, font=font_text_10, fill=0xFF)
+                draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
+                draw.text((_MARGIN, y + 8), label, font=font_medium_18, fill=0)
+                draw.text((_W - _MARGIN - page_label_w, y + 11), page_label, font=font_text_10, fill=0)
             else:
                 draw.text((_MARGIN, y + 8), label, font=font_medium_18, fill=0)
                 draw.text((_W - _MARGIN - page_label_w, y + 11), page_label, font=font_text_10, fill=0)

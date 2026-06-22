@@ -8,7 +8,7 @@ from utils.scanner import get_books_list
 _W = 480
 _H = 280
 _MARGIN = 16
-_HEADER_H = 44
+_HEADER_H = 48
 _ITEM_H = 36
 _LABEL_W = 160    # pixels reserved for the label column
 

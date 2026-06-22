@@ -8,7 +8,7 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 16
-_HEADER_H = 44
+_HEADER_H = 48
 _FOOTER_H = 18
 _PAGE_SIZE = 5
 _ITEM_H = 42          # room for 2-line items
@@ -57,10 +57,10 @@ class LibraryScreen:
                 author = _truncate(draw, book.author, font_text_10, _MAX_W) if book.author else ''
 
                 if i == self.menu:
-                    draw.rectangle((0, y, _W, y + _ITEM_H - 2), fill=0)
-                    draw.text((_MARGIN, y + 4), title, font=font_medium_18, fill=0xFF)
+                    draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
+                    draw.text((_MARGIN, y + 4), title, font=font_medium_18, fill=0)
                     if author:
-                        draw.text((_MARGIN, y + 26), author, font=font_text_10, fill=0xFF)
+                        draw.text((_MARGIN, y + 26), author, font=font_text_10, fill=0)
                 else:
                     draw.text((_MARGIN, y + 4), title, font=font_medium_18, fill=0)
                     if author:

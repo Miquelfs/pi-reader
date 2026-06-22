@@ -5,17 +5,17 @@ from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_medium_18, font_small_14, font_large_22, font_options_24, font_text_10
 from config.paths import LIBRARY_PATH, BOOKMARKS_FILE
-from config.ui_components import draw_header, draw_footer
+from config.ui_components import draw_footer
 from utils.text_parser import parse
 
 _W = 480
 _H = 280
-_MARGIN = 16
-_HEADER_H = 40
+_MARGIN = 12
+_HEADER_H = 0
 _FOOTER_H = 18
 _GAP_H = 8
-_TEXT_AREA = _H - _HEADER_H - _FOOTER_H
-_TEXT_W = _W - (_MARGIN * 2)
+_TEXT_AREA = _H - _FOOTER_H - 8
+_TEXT_W = _W - _MARGIN - 8
 
 # Per font-size: (body_font, line_h_body, line_h_heading)
 _FONT_SIZES = {
@@ -136,24 +136,44 @@ class BookScreenReader:
         self._session_start_page = self.current_page
         self._session_start_time = _time.time()
 
+    def _justify_line(self, draw, text, y, font, is_last_line):
+        """Draw text justified to _TEXT_W. Last lines in a paragraph stay left-aligned."""
+        words = text.split()
+        if is_last_line or len(words) <= 1:
+            draw.text((_MARGIN, y), text, font=font, fill=0)
+            return
+        total_word_w = sum(int(font.getlength(w)) for w in words)
+        gap_count = len(words) - 1
+        extra = _TEXT_W - total_word_w
+        base_gap = extra // gap_count
+        remainder = extra % gap_count
+        x = _MARGIN
+        for idx, word in enumerate(words):
+            draw.text((x, y), word, font=font, fill=0)
+            x += int(font.getlength(word))
+            if idx < gap_count:
+                x += base_gap + (1 if idx < remainder else 0)
+
     def _render_page(self, draw):
-        y = _HEADER_H + 4
-        for line in self.pages[self.current_page]:
+        y = 6
+        page_lines = self.pages[self.current_page]
+        for idx, line in enumerate(page_lines):
             if line.kind == 'gap':
                 y += _GAP_H
             elif line.kind == 'heading':
                 draw.text((_MARGIN, y), line.text, font=font_options_24, fill=0)
                 y += self._line_h_heading
             else:
-                draw.text((_MARGIN, y), line.text, font=self._body_font, fill=0)
+                # A line is "last" if it's the last body line before a gap/heading/end
+                next_line = page_lines[idx + 1] if idx + 1 < len(page_lines) else None
+                is_last = next_line is None or next_line.kind != 'body'
+                self._justify_line(draw, line.text, y, self._body_font, is_last)
                 y += self._line_h_body
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        title = os.path.splitext(self.book_file)[0]
-        draw_header(draw, title, w=_W, h=_HEADER_H)
         self._render_page(draw)
 
         progress = f"{self.current_page + 1} / {self.total_pages}"
@@ -165,9 +185,8 @@ class BookScreenReader:
         import time
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
-        title = os.path.splitext(self.book_file)[0]
-        draw_header(draw, title, w=_W, h=_HEADER_H)
         self._render_page(draw)
+        draw_footer(draw, f"{self.current_page + 1} / {self.total_pages}", "p = options   q = back", w=_W, h=_H, margin=_MARGIN)
         draw.rectangle((80, 100, 400, 148), fill=0)
         draw.text((110, 112), "Highlight saved ✓", font=font_options_24, fill=0xFF)
         display.draw_screen(img)

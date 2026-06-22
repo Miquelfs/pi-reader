@@ -6,8 +6,8 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 _MARGIN = 28
-_HEADER_H = 44
-_ITEM_H = 38
+_HEADER_H = 48
+_ITEM_H = 36
 
 
 class MenuScreen:
@@ -26,11 +26,12 @@ class MenuScreen:
         top = _HEADER_H + 6
         for i, opt in enumerate(self.options):
             y = top + i * _ITEM_H
+            text_y = y + (_ITEM_H - 24) // 2
             if i == self.menu:
-                draw.rectangle((0, y, _W, y + _ITEM_H - 2), fill=0)
-                draw.text((_MARGIN, y + 10), opt, font=font_options_24, fill=0xFF)
+                draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
+                draw.text((_MARGIN, text_y), opt, font=font_options_24, fill=0)
             else:
-                draw.text((_MARGIN, y + 10), opt, font=font_options_24, fill=0)
+                draw.text((_MARGIN, text_y), opt, font=font_options_24, fill=0)
 
         draw_footer(draw, "w/s = navigate", "p = open", w=_W, h=_H, margin=_MARGIN)
 
