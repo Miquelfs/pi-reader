@@ -176,4 +176,7 @@ class BookScreenReader:
         elif key == 'q':
             _save_bookmark(self.book_file, self.current_page)
             from screens.library import LibraryScreen
-            self.ereader.switch_to(LibraryScreen)
+            from utils.scanner import get_books_list
+            books = get_books_list()
+            idx = books.index(self.book_file) if self.book_file in books else 0
+            self.ereader.switch_to(LibraryScreen, start_index=idx)

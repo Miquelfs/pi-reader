@@ -1,46 +1,43 @@
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_title, font_options_24, font_medium_18, font_text_10
+from config.fonts import font_title, font_options_24, font_text_10
 from config.ui_components import draw_battery_icon
 
 _W = 480
 _H = 280
-_MARGIN = 24
+_MARGIN = 28
 _HEADER_H = 44
 
 
 class MenuScreen:
-    def __init__(self, ereader):
+    def __init__(self, ereader, start_index=0):
         self.ereader = ereader
-        self.menu = 0
+        self.menu = start_index
         self.options = ['Biblioteca', 'Guardats', 'Puja un llibre', 'Configuració']
+        self.draw()
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Header — thin bottom border, title left, battery right
-        draw.text((_MARGIN, 8), "Pi Reader", font=font_title, fill=0)
+        # Header: title text with black fill behind it only, battery right
+        title = "Pi Reader"
+        tw = int(font_title.getlength(title))
+        draw.rectangle((_MARGIN - 6, 6, _MARGIN + tw + 6, _HEADER_H - 6), fill=0)
+        draw.text((_MARGIN, 8), title, font=font_title, fill=0xFF)
         draw_battery_icon(draw, x=_W - 72, y=14)
         draw.line((0, _HEADER_H, _W, _HEADER_H), fill=0, width=1)
 
-        # Menu items — Kindle style: left accent bar on selected, light separator lines
+        # Menu items
         item_h = 44
-        top = _HEADER_H + 2
+        top = _HEADER_H + 6
         for i, opt in enumerate(self.options):
             y = top + i * item_h
-            mid_y = y + item_h // 2
-
             if i == self.menu:
-                # Left accent bar
-                draw.rectangle((0, y + 4, 4, y + item_h - 4), fill=0)
-                draw.text((_MARGIN + 8, mid_y - 12), opt, font=font_options_24, fill=0)
+                draw.rectangle((0, y + 2, 5, y + item_h - 4), fill=0)
+                draw.text((_MARGIN + 10, y + 10), opt, font=font_options_24, fill=0)
             else:
-                draw.text((_MARGIN + 8, mid_y - 12), opt, font=font_options_24, fill=0)
-
-            # Thin separator (not after last item)
-            if i < len(self.options) - 1:
-                draw.line((_MARGIN, y + item_h - 1, _W - _MARGIN, y + item_h - 1), fill=0, width=1)
+                draw.text((_MARGIN + 10, y + 10), opt, font=font_options_24, fill=0)
 
         # Footer
         draw.line((0, _H - 18, _W, _H - 18), fill=0, width=1)
@@ -66,4 +63,5 @@ class MenuScreen:
                 from screens.upload_screen import UploadScreen
                 self.ereader.switch_to(UploadScreen)
             elif self.menu == 3:
-                pass  # Configuració — Phase 2
+                from screens.config_screen import ConfigScreen
+                self.ereader.switch_to(ConfigScreen)

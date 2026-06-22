@@ -1,14 +1,23 @@
 import os
 import threading
 from app import app
-from flask import request
+from flask import request, send_file, jsonify
 from werkzeug.utils import secure_filename
 from app.text_converter import convert_pending
-from config.paths import BOOKS_PATH
+from config.paths import BOOKS_PATH, BASE_DIR
+
+HIGHLIGHTS_FILE = os.path.join(BASE_DIR, 'content', 'highlights.json')
 
 app.config['UPLOAD_FOLDER_BOOKS'] = BOOKS_PATH
 
 BOOK_EXTENSIONS = {'txt', 'pdf', 'azw3', 'epub', 'mobi'}
+
+
+@app.route('/highlights')
+def download_highlights():
+    if not os.path.exists(HIGHLIGHTS_FILE):
+        return jsonify([])
+    return send_file(HIGHLIGHTS_FILE, as_attachment=True, download_name='highlights.json', mimetype='application/json')
 
 
 @app.route('/', methods=['GET', 'POST'])
