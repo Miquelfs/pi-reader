@@ -1,12 +1,12 @@
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_title, font_options_24, font_text_10
+from config.fonts import font_title, font_options_24, font_medium_18, font_text_10
 from config.ui_components import draw_battery_icon
 
-_W = 480  # canvas width  (epd.height in landscape)
-_H = 280  # canvas height (epd.width  in landscape)
-_MARGIN = 16
-_HEADER_H = 48  # height of the title bar area
+_W = 480
+_H = 280
+_MARGIN = 24
+_HEADER_H = 44
 
 
 class MenuScreen:
@@ -19,29 +19,32 @@ class MenuScreen:
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Header bar — filled black strip (+ 4px bottom border for weight)
-        draw.rectangle((0, 0, _W, _HEADER_H + 4), fill=0)
-        draw.text((_MARGIN, 8), "Pi Reader", font=font_title, fill=0xFF)
-        draw_battery_icon(draw, x=_W - 68, y=16, inverted=True)
+        # Header — thin bottom border, title left, battery right
+        draw.text((_MARGIN, 8), "Pi Reader", font=font_title, fill=0)
+        draw_battery_icon(draw, x=_W - 72, y=14)
+        draw.line((0, _HEADER_H, _W, _HEADER_H), fill=0, width=1)
 
-        # Menu items
-        item_h = 40
-        top = _HEADER_H + 10
+        # Menu items — Kindle style: left accent bar on selected, light separator lines
+        item_h = 44
+        top = _HEADER_H + 2
         for i, opt in enumerate(self.options):
             y = top + i * item_h
-            if i == self.menu:
-                draw.rectangle((0, y - 2, _W, y + item_h - 4), fill=0)
-                draw.text((_MARGIN, y + 2), f"› {opt}", font=font_options_24, fill=0xFF)
-            else:
-                draw.text((_MARGIN, y + 2), f"  {opt}", font=font_options_24, fill=0)
-            # Separator line between items (not after last)
-            if i < len(self.options) - 1:
-                sep_y = y + item_h - 4
-                draw.line((_MARGIN, sep_y, _W - _MARGIN, sep_y), fill=0, width=1)
+            mid_y = y + item_h // 2
 
-        # Footer rule
-        draw.line((0, _H - 16, _W, _H - 16), fill=0, width=1)
-        draw.text((_MARGIN, _H - 14), "w/s=navegar  p=seleccionar", font=font_text_10, fill=0)
+            if i == self.menu:
+                # Left accent bar
+                draw.rectangle((0, y + 4, 4, y + item_h - 4), fill=0)
+                draw.text((_MARGIN + 8, mid_y - 12), opt, font=font_options_24, fill=0)
+            else:
+                draw.text((_MARGIN + 8, mid_y - 12), opt, font=font_options_24, fill=0)
+
+            # Thin separator (not after last item)
+            if i < len(self.options) - 1:
+                draw.line((_MARGIN, y + item_h - 1, _W - _MARGIN, y + item_h - 1), fill=0, width=1)
+
+        # Footer
+        draw.line((0, _H - 18, _W, _H - 18), fill=0, width=1)
+        draw.text((_MARGIN, _H - 14), "w/s=navegar   p=obrir", font=font_text_10, fill=0)
 
         display.draw_screen(img, use_partial=True)
 
