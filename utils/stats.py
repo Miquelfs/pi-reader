@@ -19,17 +19,21 @@ def _save(sessions):
         json.dump(sessions, f, ensure_ascii=False, indent=2)
 
 
-def record_session(book, pages, words, duration_s):
-    if pages <= 0:
+def record_session(book, pages, words, duration_s, rsvp_words=0, rsvp_duration_s=0):
+    if pages <= 0 and rsvp_words <= 0:
         return
     sessions = _load()
-    sessions.append({
+    entry = {
         'date': date.today().isoformat(),
         'book': book,
         'pages': pages,
         'words': words,
         'duration_s': int(duration_s),
-    })
+        'avg_s_per_page': round(duration_s / pages, 1) if pages > 0 else 0,
+        'rsvp_words': rsvp_words,
+        'rsvp_duration_s': int(rsvp_duration_s),
+    }
+    sessions.append(entry)
     _save(sessions)
 
 
@@ -74,6 +78,28 @@ def total_hours():
 def last_session():
     sessions = _load()
     return sessions[-1] if sessions else None
+
+
+def avg_s_per_page():
+    sessions = [s for s in _load() if s.get('pages', 0) > 0]
+    if not sessions:
+        return 0.0
+    total_dur = sum(s['duration_s'] for s in sessions)
+    total_pg  = sum(s['pages'] for s in sessions)
+    return total_dur / total_pg if total_pg else 0.0
+
+
+def total_rsvp_words():
+    return sum(s.get('rsvp_words', 0) for s in _load())
+
+
+def rsvp_time_pct():
+    sessions = _load()
+    total_dur = sum(s['duration_s'] for s in sessions)
+    rsvp_dur  = sum(s.get('rsvp_duration_s', 0) for s in sessions)
+    if total_dur + rsvp_dur == 0:
+        return 0.0
+    return 100.0 * rsvp_dur / (total_dur + rsvp_dur)
 
 
 def read_today():

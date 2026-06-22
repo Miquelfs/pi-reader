@@ -19,7 +19,7 @@ def _get_base_url():
         return 'http://100.67.252.76:8000'
 
 
-def _post(path, payload, timeout=8):
+def _post(path, payload, timeout=4):
     url = _get_base_url() + path
     data = json.dumps(payload).encode('utf-8')
     req = Request(url, data=data, headers={'Content-Type': 'application/json'}, method='POST')
@@ -31,7 +31,7 @@ def _post(path, payload, timeout=8):
         return None
 
 
-def _get(path, params=None, timeout=8):
+def _get(path, params=None, timeout=4):
     url = _get_base_url() + path
     if params:
         url += '?' + urlencode(params)

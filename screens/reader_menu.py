@@ -2,53 +2,46 @@ import time as _time
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_options_24, font_text_10
+from config.ui_components import draw_header
 
 _W = 480
 _H = 280
 _MARGIN = 16
+_HEADER_H = 54
+_ITEM_H = 36
 
 
 class ReaderMenuScreen:
-    """
-    Small action menu triggered by pressing p while reading.
-    Options: Save highlight | RSVP | Cancel
-    """
+    """Action menu triggered by pressing p while reading."""
 
     def __init__(self, ereader, reader_screen):
         self.ereader = ereader
-        self.reader = reader_screen  # reference to return to
+        self.reader = reader_screen
         self.menu = 0
         size_label = f"Font: {reader_screen.font_size.capitalize()}"
-        self.options = ['Save highlight', 'RSVP mode', size_label, 'Sync to Daybook']
+        self.options = ['Save highlight']
         if reader_screen.toc:
             self.options.append('Contents')
-        self.options.append('Cancel')
+        self.options += ['RSVP mode', size_label, 'Sync to Daybook', 'Cancel']
         self.draw()
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Dimmed background — draw current reader page first, then overlay
-        # (We don't have access to it here, so use a clean panel with border)
-        item_h = 30
-        header_h = 28
-        panel_h = header_h + len(self.options) * item_h + 8
-        panel_top = max(20, (_H - panel_h) // 2)
-        panel_bot = panel_top + panel_h
+        draw_header(draw, "Reading options", w=_W, h=_HEADER_H)
 
-        draw.rectangle((56, panel_top, _W - 56, panel_bot), outline=0, width=2, fill=0xFF)
-        draw.rectangle((56, panel_top, _W - 56, panel_top + header_h), fill=0)
-        draw.text((70, panel_top + 8), "Reading options", font=font_text_10, fill=0xFF)
+        _bb = font_options_24.getbbox("Ag")
+        _text_h = _bb[3] - _bb[1]
+        _text_offset = _bb[1]
 
-        top = panel_top + header_h + 4
+        top = _HEADER_H + 6
         for i, opt in enumerate(self.options):
-            y = top + i * item_h
+            y = top + i * _ITEM_H
+            text_y = y + (_ITEM_H - _text_h) // 2 - _text_offset
             if i == self.menu:
-                draw.rectangle((64, y, _W - 64, y + item_h - 2), fill=0)
-                draw.text((70, y + 4), opt, font=font_options_24, fill=0xFF)
-            else:
-                draw.text((70, y + 4), opt, font=font_options_24, fill=0)
+                draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
+            draw.text((_MARGIN, text_y), opt, font=font_options_24, fill=0)
 
         display.draw_screen(img)
 

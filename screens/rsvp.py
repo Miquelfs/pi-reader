@@ -2,13 +2,14 @@ import time
 import threading
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_title, font_options_24, font_text_10
+from config.fonts import font_title, font_options_24, font_medium_18, font_text_10
+from config.ui_components import draw_header, draw_footer
 
 _W = 480
 _H = 280
 
 # WPM options cycled with 'w'/'s' while paused
-_WPM_OPTIONS = [150, 200, 250]
+_WPM_OPTIONS = [150, 200, 250, 300, 350]
 _DEFAULT_WPM = 1  # index into _WPM_OPTIONS → 200 WPM
 
 
@@ -27,6 +28,7 @@ class RSVPScreen:
         self.ereader = ereader
         self.words = words
         self.current_word = start_word
+        self._start_word = start_word
         self.book_file = book_file
         self.on_exit = on_exit  # called with current_word when leaving
 
@@ -34,47 +36,44 @@ class RSVPScreen:
         self._playing = False
         self._thread = None
         self._stop_event = threading.Event()
+        self._session_start = time.time()
 
         self.draw()
 
     # ── Drawing ───────────────────────────────────────────────────────────────
 
     def draw(self):
+        _HEADER_H = 54
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Header
-        draw.rectangle((0, 0, _W, 52), fill=0)
-        draw.text((16, 10), "RSVP", font=font_title, fill=0xFF)
+        # Header: "RSVP" centred title + WPM right-aligned in the bar
+        draw_header(draw, "RSVP", w=_W, h=_HEADER_H)
         wpm = _WPM_OPTIONS[self._wpm_idx]
-        draw.text((_W - 90, 10), f"{wpm} WPM", font=font_options_24, fill=0xFF)
+        wpm_str = f"{wpm} WPM"
+        wpm_w = int(font_medium_18.getlength(wpm_str))
+        draw.text((_W - wpm_w - 16, (_HEADER_H - 18) // 2), wpm_str, font=font_medium_18, fill=0xFF)
 
-
-        # Central word — large, centred
+        # Central word — large, centred vertically in the reading zone
         word = self.words[self.current_word] if self.words else '—'
-        # Use font_title (36pt) for the word itself
-        word_w = font_title.getlength(word)
-        x = max(16, (_W - word_w) // 2)
-        draw.text((x, 110), word, font=font_title, fill=0)
-
-        # Fixation guide: vertical bar at the optimal recognition point (~30% from left)
-        fix_x = _W // 3
-        draw.line((fix_x, 100, fix_x, 155), fill=0, width=1)
+        word_w = int(font_title.getlength(word))
+        word_x = max(16, (_W - word_w) // 2)
+        word_y = _HEADER_H + (_H - _HEADER_H - 80) // 2 - 18
+        draw.text((word_x, word_y), word, font=font_title, fill=0)
 
         # Progress bar
         if self.words:
             progress = self.current_word / len(self.words)
+            bar_y = _H - 46
             bar_w = int((_W - 32) * progress)
-            draw.rectangle((16, 200, 16 + bar_w, 208), fill=0)
-            draw.rectangle((16, 200, _W - 16, 208), outline=0)
+            draw.rectangle((16, bar_y, _W - 16, bar_y + 8), outline=0)
+            if bar_w > 0:
+                draw.rectangle((16, bar_y, 16 + bar_w, bar_y + 8), fill=0)
             pct = int(progress * 100)
-            draw.text((16, 214), f"{pct}%  —  {self.current_word + 1} / {len(self.words)} words", font=font_text_10, fill=0)
+            draw.text((16, bar_y + 12), f"{pct}%  ·  word {self.current_word + 1} of {len(self.words)}", font=font_text_10, fill=0)
 
-        # Footer controls
-        draw.line((0, _H - 20, _W, _H - 20), fill=0, width=1)
-        status = "▶ playing" if self._playing else "⏸ paused"
-        draw.text((16, _H - 16), status, font=font_text_10, fill=0)
-        draw.text((_W - 210, _H - 16), "p=pause  w/s=speed  q=exit", font=font_text_10, fill=0)
+        status = "playing" if self._playing else "paused"
+        draw_footer(draw, status, "p=pause  w/s=speed  q=exit", w=_W, h=_H, margin=16)
 
         display.draw_screen(img)
 
@@ -123,6 +122,19 @@ class RSVPScreen:
 
         elif key == 'q':
             self._pause()
+            rsvp_words = max(0, self.current_word - self._start_word)
+            rsvp_dur   = time.time() - self._session_start
+            if rsvp_words > 0:
+                import os
+                from utils.stats import record_session
+                record_session(
+                    book=os.path.splitext(self.book_file)[0],
+                    pages=0,
+                    words=0,
+                    duration_s=0,
+                    rsvp_words=rsvp_words,
+                    rsvp_duration_s=rsvp_dur,
+                )
             if self.on_exit:
                 self.on_exit(self.current_word)
             from screens.reader import BookScreenReader

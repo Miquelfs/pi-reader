@@ -10,8 +10,8 @@ _H = 280
 _MARGIN = 16
 _HEADER_H = 54
 _FOOTER_H = 18
-_PAGE_SIZE = 5
-_ITEM_H = 42          # room for 2-line items
+_PAGE_SIZE = 6
+_ITEM_H = 34
 _MAX_W = _W - _MARGIN * 2 - 8
 
 
@@ -51,20 +51,19 @@ class LibraryScreen:
             draw.text((_MARGIN, top + 40), "No books in your library.", font=font_medium_18, fill=0)
             draw.text((_MARGIN, top + 66), "Upload a book via Wi-Fi.", font=font_text_10, fill=0)
         else:
+            _bb = font_medium_18.getbbox("Ag")
+            _text_h = _bb[3] - _bb[1]
+            _text_offset = _bb[1]
+
             for i, book in enumerate(current_books):
                 y = top + i * _ITEM_H
-                title = _truncate(draw, book.title, font_medium_18, _MAX_W)
-                author = _truncate(draw, book.author, font_text_10, _MAX_W) if book.author else ''
+                label = f"{book.title}  —  {book.author}" if book.author else book.title
+                label = _truncate(draw, label, font_medium_18, _MAX_W)
+                text_y = y + (_ITEM_H - _text_h) // 2 - _text_offset
 
                 if i == self.menu:
                     draw.rectangle((0, y, 4, y + _ITEM_H - 2), fill=0)
-                    draw.text((_MARGIN, y + 4), title, font=font_medium_18, fill=0)
-                    if author:
-                        draw.text((_MARGIN, y + 26), author, font=font_text_10, fill=0)
-                else:
-                    draw.text((_MARGIN, y + 4), title, font=font_medium_18, fill=0)
-                    if author:
-                        draw.text((_MARGIN, y + 26), author, font=font_text_10, fill=0)
+                draw.text((_MARGIN, text_y), label, font=font_medium_18, fill=0)
 
         page_label = f"{self.page} / {self._total_pages()}"
         draw_footer(draw, page_label, "p = open   q = back", w=_W, h=_H, margin=_MARGIN)

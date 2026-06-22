@@ -138,6 +138,7 @@ class BookScreenReader:
 
         self._session_start_page = self.current_page
         self._session_start_time = _time.time()
+        self._session_active = True   # False while in sub-screens (TOC, menu)
 
     def _justify_line(self, draw, text, y, font, is_last_line):
         """Draw text justified to _TEXT_W. Last lines in a paragraph stay left-aligned."""
@@ -174,6 +175,12 @@ class BookScreenReader:
                 y += self._line_h_body
 
     def draw(self):
+        # Reset session baseline when returning from a sub-screen (TOC, menu)
+        if not self._session_active:
+            self._session_start_page = self.current_page
+            self._session_start_time = _time.time()
+            self._session_active = True
+
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
@@ -215,6 +222,7 @@ class BookScreenReader:
                 self.current_page -= 1
                 self.draw()
         elif key == 'p':  # open reader action menu (save / RSVP)
+            self._session_active = False
             from screens.reader_menu import ReaderMenuScreen
             self.ereader.current_screen = ReaderMenuScreen(self.ereader, self)
             return
