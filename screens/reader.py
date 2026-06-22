@@ -118,7 +118,10 @@ class BookScreenReader:
         self._line_h_body = line_h_body
         self._line_h_heading = line_h_heading
 
-        wrap_chars = max(20, int(_TEXT_W / body_font.getlength('n')))
+        # Average char width from a representative lowercase sample
+        _sample = 'abcdefghijklmnopqrstuvwxyz '
+        avg_char_w = body_font.getlength(_sample) / len(_sample)
+        wrap_chars = max(20, int(_TEXT_W / avg_char_w))
 
         with open(os.path.join(LIBRARY_PATH, book_file), 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()

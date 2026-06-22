@@ -116,6 +116,7 @@ class EReader:
                     self._check_sleep()
                     key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
                     if key == 'z':
+                        self._sleep()
                         self.running = False
                     else:
                         self._handle_key(key)
