@@ -56,36 +56,38 @@ class MenuScreen:
             did_read = False
             last = None
 
-        # Right panel — fixed row geometry: value at y, label at y+20, row height 38
+        # Right panel: label on left, value on right of same line
+        # Row = 14px label + 4px gap + 22px value line + 6px gap = 46px
         rx      = _SPLIT_X + 14
+        rx2     = _SPLIT_X + 14   # label starts here
         panel_w = _W - rx - 10
-        ry      = _HEADER_H + 10
-        rh      = 38   # row height
+        ry      = _HEADER_H + 8
+        rh      = 46
 
-        def _rpanel_stat(val, lbl, y):
-            draw.text((rx, y),      val, font=font_medium_18, fill=0)
-            draw.text((rx, y + 20), lbl, font=font_text_10,   fill=0)
+        def _row(lbl, val, y):
+            draw.text((rx2, y),       lbl, font=font_text_10,   fill=0)
+            draw.text((rx2, y + 14),  val, font=font_medium_18, fill=0)
 
         streak_val = f"{streak}" if streak else "—"
-        streak_lbl = f"day streak" + (" ✓" if did_read else " — read today?")
-        _rpanel_stat(streak_val, streak_lbl, ry)
+        streak_lbl = "Day Streak" + ("" if did_read else "  — read today?")
+        _row(streak_lbl, streak_val, ry)
 
-        draw.line((rx, ry + rh, _W - 10, ry + rh), fill=0, width=1)
-        _rpanel_stat(f"{pages:,}", "pages read", ry + rh + 6)
+        draw.line((rx2, ry + rh - 2, _W - 10, ry + rh - 2), fill=0, width=1)
+        _row("Pages Read", f"{pages:,}", ry + rh)
 
-        draw.line((rx, ry + rh * 2 + 6, _W - 10, ry + rh * 2 + 6), fill=0, width=1)
-        _rpanel_stat(f"{hours:.1f} h", "reading time", ry + rh * 2 + 12)
+        draw.line((rx2, ry + rh * 2 - 2, _W - 10, ry + rh * 2 - 2), fill=0, width=1)
+        _row("Reading Time", f"{hours:.1f} h", ry + rh * 2)
 
-        draw.line((rx, ry + rh * 3 + 12, _W - 10, ry + rh * 3 + 12), fill=0, width=1)
+        draw.line((rx2, ry + rh * 3 - 2, _W - 10, ry + rh * 3 - 2), fill=0, width=1)
 
         if last:
             book_short = last['book']
             while book_short and draw.textlength(book_short, font=font_text_10) > panel_w:
                 book_short = book_short[:-1]
-            draw.text((rx, ry + rh * 3 + 16), "last read",  font=font_text_10, fill=0)
-            draw.text((rx, ry + rh * 3 + 28), book_short,   font=font_text_10, fill=0)
+            draw.text((rx2, ry + rh * 3),      "Last Read",  font=font_text_10, fill=0)
+            draw.text((rx2, ry + rh * 3 + 14), book_short,   font=font_text_10, fill=0)
         else:
-            draw.text((rx, ry + rh * 3 + 16), "no sessions yet", font=font_text_10, fill=0)
+            draw.text((rx2, ry + rh * 3), "No sessions yet", font=font_text_10, fill=0)
 
         draw_footer(draw, "w/s = navigate", "p = open", w=_W, h=_H, margin=_MARGIN)
 
