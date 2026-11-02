@@ -5,9 +5,8 @@ from config.display_manager import display
 from screens.menu import MenuScreen
 
 # ── GPIO pin assignments (BCM numbering) ─────────────────────────────────────
-# Set GPIO_ENABLED = True only after buttons are physically wired.
-# Floating (unwired) pins trigger spurious callbacks and cause constant redraws.
-GPIO_ENABLED = False
+# Set False to drive the reader from the keyboard over SSH instead.
+GPIO_ENABLED = True
 # BCM 17/18/24/25 and SPI 8/10/11 belong to the e-paper display; I2C 2/3 to the PiSugar.
 PIN_UP     = 5    # physical pin 29
 PIN_DOWN   = 6    # physical pin 31

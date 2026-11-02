@@ -4,7 +4,7 @@
 - Raspberry Pi Zero 2 WH
 - Waveshare 3.7" E-Ink display (480×280px, 1-bit black/white, landscape)
 - PiSugar 2 battery HAT (I2C — currently not responding, see Known Issues)
-- 4 physical buttons on BCM 5/6/13/26 (pins 29/31/33/37, GND 39) — keyboard fallback until GPIO_ENABLED=True
+- 4 physical buttons on BCM 5/6/13/26 (pins 29/31/33/37, GND 39) — wired on a breadboard, GPIO_ENABLED=True
 - E-paper connected by cable (not as HAT): RST 17, DC 25, CS 8, BUSY 24, PWR 18, MOSI 10, SCLK 11
 
 ## Architecture
@@ -118,10 +118,8 @@ z = quit (keyboard fallback only)
 - `pi-reader.service` — auto-starts main.py on boot (see setup below)
 
 ## Known issues
-- **Buttons not wired yet**: GPIO_ENABLED=False in main.py. Under systemd there is no stdin,
-  so the device has no input until buttons are wired and the flag is flipped.
-- **Battery shows nothing**: PiSugar2 not responding on I2C (probes 0x75 and 0x57).
-  Likely Waveshare HAT interfering with I2C bus. Debug: `sudo i2cdetect -y 1` with only PiSugar2.
+- **Battery shows nothing**: PiSugar2 not responding on I2C — `i2cdetect -y 1` is empty even with
+  the display on a cable instead of the HAT, so it's the PiSugar's pogo-pin contact, not the HAT.
 - **Upload server has no auth**: only runs while the Upload screen is open, but anyone on the
   same network/tailnet can upload or read /highlights during that time.
 
