@@ -44,7 +44,8 @@ def save_highlight(book_file, page_lines, page_num):
     try:
         from utils.daybook_sync import push_highlight
         from datetime import date as _date
-        push_highlight(stem, page_num, text[:300], _date.today().isoformat())
+        from utils.scanner import _load_meta
+        push_highlight(_load_meta(stem)[0], page_num, text[:300], _date.today().isoformat())
     except Exception:
         pass
 
@@ -54,7 +55,6 @@ class SavedScreen:
         self.ereader = ereader
         self.highlights = load_highlights()
         self.index = max(0, len(self.highlights) - 1)
-        self.draw()
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)

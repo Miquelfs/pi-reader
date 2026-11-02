@@ -40,7 +40,6 @@ class ConfigScreen:
         self.cursor = 0   # which row is focused (only editable rows)
         self._editable = [i for i, (_, _, opts) in enumerate(_SETTINGS) if opts is not None]
         self._cursor_pos = 0  # index into _editable
-        self.draw()
 
     @property
     def _focused_row(self):

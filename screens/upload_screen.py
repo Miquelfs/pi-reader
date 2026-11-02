@@ -10,9 +10,7 @@ _H = 280
 _MARGIN = 28
 _HEADER_H = 54
 
-_server_thread = None
-_poll_thread = None
-_poll_stop = threading.Event()
+_server = None
 
 
 def _get_ip():
@@ -26,39 +24,49 @@ def _get_ip():
         return '?.?.?.?'
 
 
-def _run_server():
+def _start_server():
+    global _server
+    if _server:
+        return
+    from werkzeug.serving import make_server
     from app.file_transfer import app
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    _server = make_server('0.0.0.0', 5000, app, threaded=True)
+    threading.Thread(target=_server.serve_forever, daemon=True).start()
+
+
+def _stop_server():
+    global _server
+    if _server:
+        _server.shutdown()
+        _server = None
 
 
 class UploadScreen:
     def __init__(self, ereader):
         self.ereader = ereader
         self._dot_cycle = 0
-        self._start_server()
-        self._start_poll()
-        self.draw()
-
-    def _start_server(self):
-        global _server_thread
-        if _server_thread and _server_thread.is_alive():
-            return
-        _server_thread = threading.Thread(target=_run_server, daemon=True)
-        _server_thread.start()
-
-    def _start_poll(self):
-        global _poll_thread, _poll_stop
-        _poll_stop.clear()
-        _poll_thread = threading.Thread(target=self._poll_loop, daemon=True)
-        _poll_thread.start()
+        self._stop = threading.Event()
+        _start_server()
+        threading.Thread(target=self._poll_loop, daemon=True).start()
 
     def _poll_loop(self):
-        while not _poll_stop.wait(timeout=3):
-            self._dot_cycle = (self._dot_cycle + 1) % 3
-            try:
-                self.draw()
-            except Exception:
-                pass
+        # Only redraw when the conversion status changes — every frame is a
+        # full e-ink refresh, and drawing while asleep would wake the panel.
+        from app.text_converter import conversion_state
+        last = (conversion_state['status'], conversion_state['filename'])
+        while not self._stop.wait(timeout=3):
+            now = (conversion_state['status'], conversion_state['filename'])
+            if now == last:
+                continue
+            last = now
+            with self.ereader._lock:
+                if self.ereader.current_screen is not self or self.ereader._sleeping:
+                    continue
+                self._dot_cycle = (self._dot_cycle + 1) % 3
+                try:
+                    self.draw()
+                except Exception as e:
+                    print(f"Upload screen redraw failed: {e}")
 
     def draw(self):
         from app.text_converter import conversion_state
@@ -100,6 +108,7 @@ class UploadScreen:
 
     def handle_key(self, key):
         if key == 'q':
-            _poll_stop.set()
+            self._stop.set()
+            _stop_server()
             from screens.menu import MenuScreen
             self.ereader.switch_to(MenuScreen, start_index=3)

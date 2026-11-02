@@ -1,3 +1,5 @@
+import sys
+import threading
 import time
 from config.display_manager import display
 from screens.menu import MenuScreen
@@ -23,6 +25,8 @@ class EReader:
         self._last_activity = time.time()
         self._sleeping = False
         self._gpio_available = False
+        # Serialises key handling with auto-sleep (they run on different threads)
+        self._lock = threading.RLock()
         self._setup_gpio()
 
     def _setup_gpio(self):
@@ -49,12 +53,13 @@ class EReader:
             print(f"GPIO not available ({e}) — using keyboard input.")
 
     def _handle_key(self, key):
-        self._last_activity = time.time()
-        if self._sleeping:
-            self._wake()
-            return
-        if self.current_screen:
-            self.current_screen.handle_key(key)
+        with self._lock:
+            self._last_activity = time.time()
+            if self._sleeping:
+                self._wake()
+                return
+            if self.current_screen:
+                self.current_screen.handle_key(key)
 
     def switch_to(self, screen_class, **kwargs):
         display.deep_clear()
@@ -71,11 +76,17 @@ class EReader:
             return SLEEP_AFTER_S
 
     def _check_sleep(self):
-        if not self._sleeping and time.time() - self._last_activity > self._sleep_timeout():
-            self._sleep()
+        with self._lock:
+            if getattr(self.current_screen, 'busy', False):
+                self._last_activity = time.time()
+            if not self._sleeping and time.time() - self._last_activity > self._sleep_timeout():
+                self._sleep()
 
     def _sleep(self):
         self._sleeping = True
+        on_sleep = getattr(self.current_screen, 'on_sleep', None)
+        if on_sleep:
+            on_sleep()
         from screens.sleep_screen import build_sleep_image
         display.draw_screen(build_sleep_image())
         display.sleep()
@@ -88,44 +99,39 @@ class EReader:
             display.deep_clear()
             self.current_screen.draw()
 
-    def run(self):
+    def _keyboard_loop(self):
+        try:
+            while self.running:
+                key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
+                if key == 'z':
+                    with self._lock:
+                        self._sleep()
+                        self.running = False
+                else:
+                    self._handle_key(key)
+        except EOFError:
+            pass  # no stdin (e.g. under systemd) — buttons only
+
+    def run(self, force_menu=False):
         display.init_display()
 
-        # Boot into last-read book only when running as a systemd service.
-        # Interactive SSH sessions (no JOURNAL_STREAM) always start at the menu.
-        import os
-        if 'JOURNAL_STREAM' in os.environ:
-            from screens.reader import get_last_opened
-            from utils.scanner import get_books_list
-            last_book, last_page = get_last_opened()
-            if last_book and last_book in [b.filename for b in get_books_list()]:
-                from screens.reader import BookScreenReader
-                self.switch_to(BookScreenReader, book_file=last_book, start_page=last_page)
-            else:
-                self.switch_to(MenuScreen)
+        # `python3 main.py --menu` skips the last book, handy when testing over SSH
+        from screens.reader import get_last_opened
+        from utils.scanner import get_books_list
+        last_book = None if force_menu else get_last_opened()
+        if last_book and last_book in [b.filename for b in get_books_list()]:
+            from screens.reader import BookScreenReader
+            self.switch_to(BookScreenReader, book_file=last_book)
         else:
             self.switch_to(MenuScreen)
 
-        if self._gpio_available:
-            while self.running:
-                self._check_sleep()
-                time.sleep(5)
-        else:
-            try:
-                while self.running:
-                    self._check_sleep()
-                    key = input("w=up  s=down  p=select  q=back  z=quit: ").strip()
-                    if key == 'z':
-                        self._sleep()
-                        self.running = False
-                    else:
-                        self._handle_key(key)
-            except EOFError:
-                while self.running:
-                    self._check_sleep()
-                    time.sleep(5)
+        if not self._gpio_available:
+            threading.Thread(target=self._keyboard_loop, daemon=True).start()
+        while self.running:
+            self._check_sleep()
+            time.sleep(1)
 
 
 if __name__ == "__main__":
     ereader = EReader()
-    ereader.run()
+    ereader.run(force_menu='--menu' in sys.argv)

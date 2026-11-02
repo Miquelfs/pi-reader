@@ -102,6 +102,11 @@ def rsvp_time_pct():
     return 100.0 * rsvp_dur / (total_dur + rsvp_dur)
 
 
+def pages_today():
+    today = date.today().isoformat()
+    return sum(s['pages'] for s in _load() if s['date'] == today)
+
+
 def read_today():
     today = date.today().isoformat()
     return any(s['date'] == today for s in _load())

@@ -9,6 +9,7 @@ from config.paths import BOOKS_PATH, BASE_DIR
 HIGHLIGHTS_FILE = os.path.join(BASE_DIR, 'content', 'highlights.json')
 
 app.config['UPLOAD_FOLDER_BOOKS'] = BOOKS_PATH
+app.config['MAX_CONTENT_LENGTH'] = 100 * 1024 * 1024
 
 BOOK_EXTENSIONS = {'txt', 'pdf', 'azw3', 'epub', 'mobi'}
 

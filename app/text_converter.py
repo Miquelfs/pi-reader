@@ -2,7 +2,9 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
+import threading
 from datetime import date
 from config.paths import BOOKS_PATH, LIBRARY_PATH
 
@@ -12,6 +14,10 @@ conversion_state = {
     'filename': '',
     'last_title': '',
 }
+
+# One ebook-convert at a time: the Pi Zero has 512 MB, and two runs triggered
+# by back-to-back uploads would otherwise race on the same file.
+_convert_lock = threading.Lock()
 
 
 def _already_converted(filename):
@@ -84,22 +90,39 @@ def convert_book(input_path, output_path):
 
 def convert_pending():
     """Convert every file in books/ that isn't already in library/. Returns list of converted filenames."""
+    with _convert_lock:
+        return _convert_pending()
+
+
+def _convert_pending():
     converted = []
     for filename in os.listdir(BOOKS_PATH):
         if filename.startswith('.'):
             continue
         stem, ext = os.path.splitext(filename)
-        if not ext or ext.lower() == ".txt":
-            continue
-        if _already_converted(filename):
+        if not ext or _already_converted(filename):
             continue
         input_path  = os.path.join(BOOKS_PATH, filename)
         output_path = os.path.join(LIBRARY_PATH, stem + ".txt")
+
+        if ext.lower() == ".txt":
+            shutil.copyfile(input_path, output_path)
+            title = _clean_filename(stem)
+            _write_meta(stem, title, '', _word_count(output_path))
+            conversion_state['status'] = 'done'
+            conversion_state['filename'] = filename
+            conversion_state['last_title'] = title
+            converted.append(stem + ".txt")
+            continue
+
         print(f"Converting {filename} → {stem}.txt")
         conversion_state['status'] = 'converting'
         conversion_state['filename'] = filename
         conversion_state['last_title'] = _clean_filename(stem)
-        if convert_book(input_path, output_path):
+        # Dot-prefixed temp name so the library never lists a half-written book
+        tmp_path = os.path.join(LIBRARY_PATH, "." + stem + ".converting.txt")
+        if convert_book(input_path, tmp_path):
+            os.replace(tmp_path, output_path)
             title, author = _extract_metadata(input_path, stem)
             wc = _word_count(output_path)
             _write_meta(stem, title, author, wc)
@@ -108,6 +131,8 @@ def convert_pending():
             converted.append(stem + ".txt")
         else:
             print(f"  ebook-convert failed for {filename}")
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
             conversion_state['status'] = 'error'
     if not converted and conversion_state['status'] != 'error':
         conversion_state['status'] = 'idle'

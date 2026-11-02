@@ -72,25 +72,22 @@ class ReaderMenuScreen:
 
         elif selected == 'RSVP mode':
             from screens.rsvp import RSVPScreen
-            from screens.reader import _save_bookmark
-            _save_bookmark(self.reader.book_file, self.reader.current_page)
-            start_word = self.reader._approx_word_for_page()
             self.ereader.switch_to(
                 RSVPScreen,
                 words=self.reader._words,
-                start_word=start_word,
+                start_word=self.reader.current_word,
                 book_file=self.reader.book_file,
+                font_size=self.reader.font_size,
             )
 
         elif selected.startswith('Font:'):
-            from screens.reader import BookScreenReader, _SIZE_CYCLE, _save_bookmark
+            from screens.reader import BookScreenReader, _SIZE_CYCLE
             current = self.reader.font_size
             next_size = _SIZE_CYCLE[(_SIZE_CYCLE.index(current) + 1) % len(_SIZE_CYCLE)]
-            _save_bookmark(self.reader.book_file, self.reader.current_page, next_size)
             self.ereader.switch_to(
                 BookScreenReader,
                 book_file=self.reader.book_file,
-                start_page=self.reader.current_page,
+                start_word=self.reader.current_word,
                 font_size=next_size,
             )
 

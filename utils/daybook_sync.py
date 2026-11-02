@@ -7,7 +7,6 @@ import json
 import threading
 from datetime import date
 from urllib.request import urlopen, Request
-from urllib.error import URLError
 from urllib.parse import urlencode
 
 
@@ -26,7 +25,7 @@ def _post(path, payload, timeout=4):
     try:
         with urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
-    except URLError as e:
+    except (OSError, ValueError) as e:
         print(f"[daybook] POST {path} failed: {e}")
         return None
 
@@ -39,7 +38,7 @@ def _get(path, params=None, timeout=4):
     try:
         with urlopen(req, timeout=timeout) as resp:
             return json.loads(resp.read())
-    except URLError as e:
+    except (OSError, ValueError) as e:
         print(f"[daybook] GET {path} failed: {e}")
         return None
 
@@ -56,43 +55,24 @@ def _find_book_id(title):
     return None
 
 
-def sync_book(title, author='', pages=None, date_finished=None, notes=''):
-    """Push a book record to Daybook. Runs in a background thread."""
+def _find_or_create_book(title, author=''):
+    book_id = _find_book_id(title)
+    if book_id is not None:
+        return book_id
+    # Daybook's BookIn requires author, even if empty
+    result = _post('/books', {'title': title, 'author': author or '', 'ownership': 'own'})
+    return result.get('id') if result else None
+
+
+def sync_book(title, author=''):
+    """Make sure the book exists in Daybook (no duplicates). Background thread."""
     def _run():
-        payload = {'title': title, 'author': author, 'ownership': 'own'}
-        if pages:
-            payload['pages'] = pages
-        if date_finished:
-            payload['date_finished'] = date_finished
-        if notes:
-            payload['notes'] = notes
-        result = _post('/books', payload)
-        if result:
-            print(f"[daybook] Synced book: {title!r} (id={result.get('id')})")
+        book_id = _find_or_create_book(title, author)
+        if book_id is not None:
+            print(f"[daybook] Book in Daybook: {title!r} (id={book_id})")
         else:
             print(f"[daybook] Book sync failed for {title!r}")
 
-    threading.Thread(target=_run, daemon=True).start()
-
-
-def sync_stats(streak, pages, words, hours, avg_spp, rsvp_words, rsvp_pct):
-    """Push reading stats to Daybook as a note on today's day entry. Background thread."""
-    def _run():
-        today = date.today().isoformat()
-        note = (
-            f"Pi Reader stats ({today}): "
-            f"{streak} day streak, "
-            f"{pages:,} pages, "
-            f"{words:,} words, "
-            f"{hours:.1f} h reading, "
-            f"{avg_spp:.0f} s/page avg, "
-            f"{rsvp_words:,} RSVP words ({rsvp_pct:.0f}% of time)"
-        )
-        result = _post(f'/days/{today}', {'notes': note})
-        if result:
-            print(f"[daybook] Stats synced for {today}")
-        else:
-            print(f"[daybook] Stats sync failed for {today}")
     threading.Thread(target=_run, daemon=True).start()
 
 
@@ -102,12 +82,7 @@ def push_highlight(book_title, page_num, text, date_str=None):
         date_str = date.today().isoformat()
 
     def _run():
-        book_id = _find_book_id(book_title)
-        if book_id is None:
-            # Book not in Daybook yet — create it first, then push highlight
-            result = _post('/books', {'title': book_title, 'ownership': 'own'})
-            if result:
-                book_id = result.get('id')
+        book_id = _find_or_create_book(book_title)
         if book_id is None:
             print(f"[daybook] Cannot push highlight: book {book_title!r} not found/created")
             return

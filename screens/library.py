@@ -29,7 +29,6 @@ class LibraryScreen:
         self.books = get_books_list()
         self.page = start_index // _PAGE_SIZE + 1
         self.menu = start_index % _PAGE_SIZE
-        self.draw()
 
     def _total_pages(self):
         return max(1, (len(self.books) + _PAGE_SIZE - 1) // _PAGE_SIZE)

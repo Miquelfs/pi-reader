@@ -3,6 +3,5 @@ Pillow
 smbus2
 gpiozero
 RPi.GPIO
-pdf2image
 # System deps (install via apt):
 #   sudo apt install calibre poppler-utils

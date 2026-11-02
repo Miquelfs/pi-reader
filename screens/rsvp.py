@@ -8,9 +8,10 @@ from config.ui_components import draw_header, draw_footer
 _W = 480
 _H = 280
 
-# WPM options cycled with 'w'/'s' while paused
-_WPM_OPTIONS = [150, 200, 250, 300, 350]
-_DEFAULT_WPM = 1  # index into _WPM_OPTIONS → 200 WPM
+# Each word is a full panel refresh, so the top speeds are only reachable if
+# the refresh is quick enough — the loop just runs as fast as the panel allows.
+_WPM_OPTIONS = [60, 100, 150, 200, 250]
+_DEFAULT_WPM = 2  # index into _WPM_OPTIONS → 150 WPM
 
 
 def _wpm_to_delay(wpm):
@@ -24,13 +25,13 @@ class RSVPScreen:
     Controls: p=pause/resume, s=faster, w=slower, q=back to book
     """
 
-    def __init__(self, ereader, words, start_word=0, book_file='', on_exit=None):
+    def __init__(self, ereader, words, start_word=0, book_file='', font_size=None):
         self.ereader = ereader
         self.words = words
         self.current_word = start_word
         self._start_word = start_word
         self.book_file = book_file
-        self.on_exit = on_exit  # called with current_word when leaving
+        self.font_size = font_size
 
         self._wpm_idx = _DEFAULT_WPM
         self._playing = False
@@ -38,7 +39,6 @@ class RSVPScreen:
         self._stop_event = threading.Event()
         self._session_start = time.time()
 
-        self.draw()
 
     # ── Drawing ───────────────────────────────────────────────────────────────
 
@@ -79,16 +79,22 @@ class RSVPScreen:
 
     # ── Playback ──────────────────────────────────────────────────────────────
 
+    @property
+    def busy(self):
+        """Keeps auto-sleep away while playing — no key presses happen then."""
+        return self._playing
+
     def _play_loop(self):
         while not self._stop_event.is_set():
             if self.current_word >= len(self.words) - 1:
                 self._playing = False
                 self.draw()
                 break
+            t0 = time.time()
             self.current_word += 1
             self.draw()
             delay = _wpm_to_delay(_WPM_OPTIONS[self._wpm_idx])
-            self._stop_event.wait(timeout=delay)
+            self._stop_event.wait(timeout=max(0, delay - (time.time() - t0)))
 
     def _start(self):
         self._stop_event.clear()
@@ -99,6 +105,9 @@ class RSVPScreen:
     def _pause(self):
         self._playing = False
         self._stop_event.set()
+        # Let an in-flight frame finish so it can't land on top of the next screen
+        if self._thread and self._thread is not threading.current_thread():
+            self._thread.join(timeout=5)
 
     # ── Input ─────────────────────────────────────────────────────────────────
 
@@ -135,7 +144,6 @@ class RSVPScreen:
                     rsvp_words=rsvp_words,
                     rsvp_duration_s=rsvp_dur,
                 )
-            if self.on_exit:
-                self.on_exit(self.current_word)
             from screens.reader import BookScreenReader
-            self.ereader.switch_to(BookScreenReader, book_file=self.book_file)
+            self.ereader.switch_to(BookScreenReader, book_file=self.book_file,
+                                   start_word=self.current_word, font_size=self.font_size)

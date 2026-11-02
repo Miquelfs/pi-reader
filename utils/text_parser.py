@@ -1,7 +1,9 @@
+import re
 import textwrap
 
-WRAP_WIDTH = 52        # character estimate — overridden by pixel-aware wrap in reader
+WRAP_WIDTH = 52        # character fallback when no pixel measure is given
 HEADING_MAX_LEN = 60  # longer than this can't be a heading even if uppercase
+_CHAPTER_RE = re.compile(r'^(chapter|part|book|prologue|epilogue)\b[^.!?]{0,40}$', re.IGNORECASE)
 
 
 class Line:
@@ -22,11 +24,34 @@ def _is_heading(paragraph):
     words = stripped.split()
     if len(words) == 0:
         return False
-    upper_words = sum(1 for w in words if w.replace(',', '').replace('.', '').replace(':', '').isupper() and len(w) > 1)
-    return upper_words >= max(1, len(words) * 0.6)
+    if _CHAPTER_RE.match(stripped):
+        return True
+    # Numerals don't count either way, so "CHAPTER 1" or "IV. THE STORM" qualify
+    alpha_words = [w for w in words if any(c.isalpha() for c in w)]
+    upper_words = sum(1 for w in alpha_words if w.replace(',', '').replace('.', '').replace(':', '').isupper() and len(w) > 1)
+    return upper_words >= max(1, len(alpha_words) * 0.6)
 
 
-def parse(text, wrap_width=WRAP_WIDTH):
+def wrap_px(text, measure, max_w):
+    """Greedy wrap so that sum(word widths) + one space per gap fits max_w.
+    measure(word) must return the same integer widths the renderer uses,
+    otherwise justified lines can end up with negative gaps."""
+    space_w = measure(' ')
+    out, current, current_w = [], [], 0
+    for word in text.split():
+        w = measure(word)
+        if current and current_w + space_w + w > max_w:
+            out.append(' '.join(current))
+            current, current_w = [word], w
+        else:
+            current_w += (space_w if current else 0) + w
+            current.append(word)
+    if current:
+        out.append(' '.join(current))
+    return out
+
+
+def parse(text, wrap_width=WRAP_WIDTH, measure=None, max_w=None, heading_measure=None):
     """
     Split raw book text into a list of Line objects.
 
@@ -35,9 +60,14 @@ def parse(text, wrap_width=WRAP_WIDTH):
     - Short ALL-CAPS paragraphs → 'heading' Lines (rendered larger)
     - Everything else → word-wrapped 'body' Lines
 
-    wrap_width: character count. Pass a pixel-derived value from the caller
-    for accurate wrapping with proportional fonts.
+    With measure + max_w, lines are wrapped by pixel width; otherwise by
+    wrap_width characters.
     """
+    def _wrap(t, m):
+        if m and max_w:
+            return wrap_px(t, m, max_w)
+        return textwrap.wrap(t, width=wrap_width)
+
     lines = []
     paragraphs = text.split('\n')
 
@@ -56,7 +86,8 @@ def parse(text, wrap_width=WRAP_WIDTH):
             # Emit a gap before heading if not already present
             if lines and lines[-1].kind != 'gap':
                 lines.append(Line('', 'gap'))
-            lines.append(Line(raw.strip(), 'heading'))
+            for h in _wrap(raw.strip(), heading_measure or measure):
+                lines.append(Line(h, 'heading'))
             lines.append(Line('', 'gap'))
             i += 1
             continue
@@ -79,8 +110,7 @@ def parse(text, wrap_width=WRAP_WIDTH):
                 break
 
         paragraph_text = ' '.join(para_parts)
-        wrapped = textwrap.wrap(paragraph_text, width=wrap_width)
-        for w in wrapped:
+        for w in _wrap(paragraph_text, measure):
             lines.append(Line(w, 'body'))
 
     # Strip leading/trailing gaps

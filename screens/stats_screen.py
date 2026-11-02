@@ -17,7 +17,6 @@ _RH = 40   # row height: 12px label + 22px value + 6px gap
 class StatsScreen:
     def __init__(self, ereader):
         self.ereader = ereader
-        self.draw()
 
     def draw(self):
         from utils.stats import (streak_days, total_pages, total_words, total_hours,
@@ -82,14 +81,6 @@ class StatsScreen:
 
         draw_footer(draw, "", "q = back", w=_W, h=_H, margin=_MARGIN)
         display.draw_screen(img)
-
-        # Sync to Daybook in background
-        try:
-            from utils.daybook_sync import sync_stats
-            sync_stats(streak=streak, pages=pages, words=words, hours=hours,
-                       avg_spp=avg_spp, rsvp_words=rsvp_w, rsvp_pct=rsvp_pct)
-        except Exception:
-            pass
 
     def handle_key(self, key):
         if key == 'q':

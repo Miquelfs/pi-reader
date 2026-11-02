@@ -16,7 +16,6 @@ class MenuScreen:
         self.ereader = ereader
         self.menu = start_index
         self.options = ['Library', 'Highlights', 'Statistics', 'Upload', 'Settings']
-        self.draw()
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
@@ -44,14 +43,16 @@ class MenuScreen:
 
         # Right panel: reading stats
         try:
-            from utils.stats import streak_days, total_pages, total_hours, read_today, last_session
+            from utils.stats import streak_days, pages_today, total_hours, read_today, last_session
+            from utils.config_manager import get as cfg_get
             streak = streak_days()
-            pages  = total_pages()
+            pages  = pages_today()
+            goal   = cfg_get('daily_goal_pages')
             hours  = total_hours()
             did_read = read_today()
             last   = last_session()
         except Exception:
-            streak = pages = 0
+            streak = pages = goal = 0
             hours = 0.0
             did_read = False
             last = None
@@ -73,7 +74,7 @@ class MenuScreen:
         _row(streak_lbl, streak_val, ry)
 
         draw.line((rx2, ry + rh - 2, _W - 10, ry + rh - 2), fill=0, width=1)
-        _row("Pages Read", f"{pages:,}", ry + rh)
+        _row("Pages Today", f"{pages} / {goal}" if goal else f"{pages}", ry + rh)
 
         draw.line((rx2, ry + rh * 2 - 2, _W - 10, ry + rh * 2 - 2), fill=0, width=1)
         _row("Reading Time", f"{hours:.1f} h", ry + rh * 2)

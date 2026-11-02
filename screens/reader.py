@@ -1,6 +1,7 @@
 import os
 import json
 import time as _time
+from bisect import bisect_right
 from PIL import Image, ImageDraw
 from config.display_manager import display
 from config.fonts import font_medium_18, font_small_14, font_large_22, font_options_24, font_text_10
@@ -42,25 +43,41 @@ def _book_entry(bookmarks, book_file):
     return val
 
 
-def _save_bookmark(book_file, page, font_size='medium'):
+def _save_bookmark(book_file, word, font_size):
+    """Position is a body-word index so it survives font-size changes and RSVP."""
     bookmarks = _load_bookmarks()
     entry = _book_entry(bookmarks, book_file)
-    entry['page'] = page
+    entry.pop('page', None)
+    entry['word'] = word
     entry['font_size'] = font_size
     bookmarks[book_file] = entry
     bookmarks['_last_opened'] = book_file
-    with open(BOOKMARKS_FILE, 'w') as f:
+    # Written on every page turn, so a power cut mid-write must not leave a
+    # truncated file behind.
+    tmp = BOOKMARKS_FILE + '.tmp'
+    with open(tmp, 'w') as f:
         json.dump(bookmarks, f)
+        f.flush()
+        os.fsync(f.fileno())
+    os.replace(tmp, BOOKMARKS_FILE)
 
 
 def get_last_opened():
-    """Return (book_file, page) of the last opened book, or (None, 0)."""
-    bookmarks = _load_bookmarks()
-    book = bookmarks.get('_last_opened')
-    if not book:
-        return None, 0
-    entry = _book_entry(bookmarks, book)
-    return book, entry.get('page', 0)
+    """Return the filename of the last opened book, or None."""
+    return _load_bookmarks().get('_last_opened')
+
+
+def _cached_measure(font):
+    # The font's own space is ~3px at 14px, which disappears on a 1-bit panel;
+    # wrapping and drawing both use a wider minimum gap instead.
+    widths = {' ': max(int(font.getlength(' ')), round(getattr(font, 'size', 14) / 3))}
+
+    def measure(word):
+        w = widths.get(word)
+        if w is None:
+            w = widths[word] = int(font.getlength(word))
+        return w
+    return measure
 
 
 def _build_pages(lines, line_h_body, line_h_heading):
@@ -72,6 +89,7 @@ def _build_pages(lines, line_h_body, line_h_heading):
     toc = []
     current_page = []
     used_h = 0
+    prev_kind = None
 
     for line in lines:
         if line.kind == 'gap':
@@ -88,11 +106,12 @@ def _build_pages(lines, line_h_body, line_h_heading):
             if line.kind == 'gap':
                 continue
 
-        if line.kind == 'heading' and not current_page:
+        if line.kind == 'heading' and prev_kind != 'heading':
             toc.append((line.text, len(pages)))
 
         current_page.append(line)
         used_h += h
+        prev_kind = line.kind
 
     if current_page:
         pages.append(current_page)
@@ -101,60 +120,91 @@ def _build_pages(lines, line_h_body, line_h_heading):
 
 
 class BookScreenReader:
-    def __init__(self, ereader, book_file, start_page=None, font_size=None):
+    def __init__(self, ereader, book_file, start_word=None, font_size=None):
         self.ereader = ereader
         self.book_file = book_file
 
         bookmarks = _load_bookmarks()
         entry = _book_entry(bookmarks, book_file)
 
-        # font_size kwarg overrides bookmark; bookmark overrides default 'medium'
-        self.font_size = font_size or entry.get('font_size', 'medium')
-        if self.font_size not in _FONT_SIZES:
-            self.font_size = 'medium'
+        # font_size kwarg > this book's last size > Settings default
+        if not font_size:
+            from utils.config_manager import get as cfg_get
+            font_size = entry.get('font_size') or cfg_get('default_font_size')
+        self.font_size = font_size if font_size in _FONT_SIZES else 'medium'
 
         body_font, line_h_body, line_h_heading = _FONT_SIZES[self.font_size]
         self._body_font = body_font
         self._line_h_body = line_h_body
         self._line_h_heading = line_h_heading
-
-        # Average char width from a representative lowercase sample
-        _sample = 'abcdefghijklmnopqrstuvwxyz '
-        avg_char_w = body_font.getlength(_sample) / len(_sample)
-        wrap_chars = max(20, int(_TEXT_W / avg_char_w))
+        self._measure = _cached_measure(body_font)
 
         with open(os.path.join(LIBRARY_PATH, book_file), 'r', encoding='utf-8', errors='replace') as f:
             content = f.read()
 
-        parsed = parse(content, wrap_width=wrap_chars)
+        parsed = parse(content, measure=self._measure, max_w=_TEXT_W,
+                       heading_measure=_cached_measure(font_options_24))
         self.pages, self.toc = _build_pages(parsed, line_h_body, line_h_heading)
         self.total_pages = len(self.pages)
         self._words = [w for line in parsed if line.kind == 'body' for w in line.text.split()]
 
-        if start_page is not None:
-            self.current_page = min(start_page, self.total_pages - 1)
+        self._page_starts = []
+        n = 0
+        for page in self.pages:
+            self._page_starts.append(n)
+            n += sum(len(line.text.split()) for line in page if line.kind == 'body')
+
+        if start_word is None:
+            start_word = entry.get('word')
+        if start_word is not None:
+            self.current_page = self.page_for_word(start_word)
         else:
             self.current_page = min(entry.get('page', 0), self.total_pages - 1)
 
-        self._session_start_page = self.current_page
-        self._session_start_time = _time.time()
-        self._session_active = True   # False while in sub-screens (TOC, menu)
+        self._session_start = None   # set on draw, cleared while in sub-screens / asleep
+        self._session_pages = 0
+        self._session_words = 0
+
+    def page_for_word(self, word):
+        return max(0, bisect_right(self._page_starts, word) - 1)
+
+    @property
+    def current_word(self):
+        return self._page_starts[self.current_page]
+
+    def _flush_session(self):
+        if self._session_start is None:
+            return
+        from utils.stats import record_session
+        record_session(
+            book=os.path.splitext(self.book_file)[0],
+            pages=self._session_pages,
+            words=self._session_words,
+            duration_s=_time.time() - self._session_start,
+        )
+        self._session_start = None
+        self._session_pages = 0
+        self._session_words = 0
+
+    def on_sleep(self):
+        self._flush_session()
 
     def _justify_line(self, draw, text, y, font, is_last_line):
-        """Draw text justified to _TEXT_W. Last lines in a paragraph stay left-aligned."""
+        """Draw text justified to _TEXT_W. Last lines in a paragraph stay left-aligned,
+        and so do lines that would need very wide gaps (no hyphenation here)."""
         words = text.split()
-        if is_last_line or len(words) <= 1:
-            draw.text((_MARGIN, y), text, font=font, fill=0)
-            return
-        total_word_w = sum(int(font.getlength(w)) for w in words)
         gap_count = len(words) - 1
-        extra = _TEXT_W - total_word_w
-        base_gap = extra // gap_count
-        remainder = extra % gap_count
+        min_gap = self._measure(' ')
+        extra = _TEXT_W - sum(self._measure(w) for w in words)
+        if is_last_line or gap_count == 0 or extra > gap_count * min_gap * 4:
+            base_gap, remainder = min_gap, 0
+        else:
+            base_gap = extra // gap_count
+            remainder = extra % gap_count
         x = _MARGIN
         for idx, word in enumerate(words):
             draw.text((x, y), word, font=font, fill=0)
-            x += int(font.getlength(word))
+            x += self._measure(word)
             if idx < gap_count:
                 x += base_gap + (1 if idx < remainder else 0)
 
@@ -175,11 +225,9 @@ class BookScreenReader:
                 y += self._line_h_body
 
     def draw(self):
-        # Reset session baseline when returning from a sub-screen (TOC, menu)
-        if not self._session_active:
-            self._session_start_page = self.current_page
-            self._session_start_time = _time.time()
-            self._session_active = True
+        if self._session_start is None:
+            self._session_start = _time.time()
+        _save_bookmark(self.book_file, self.current_word, self.font_size)
 
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
@@ -203,18 +251,11 @@ class BookScreenReader:
         time.sleep(1.2)
         self.draw()
 
-    def _approx_word_for_page(self):
-        """Estimate which word index corresponds to the start of the current page."""
-        words_before = 0
-        for page in self.pages[:self.current_page]:
-            for line in page:
-                if line.kind == 'body':
-                    words_before += len(line.text.split())
-        return words_before
-
     def handle_key(self, key):
         if key == 's':  # next page
             if self.current_page < self.total_pages - 1:
+                self._session_pages += 1
+                self._session_words += self._page_starts[self.current_page + 1] - self.current_word
                 self.current_page += 1
                 self.draw()
         elif key == 'w':  # previous page
@@ -222,27 +263,12 @@ class BookScreenReader:
                 self.current_page -= 1
                 self.draw()
         elif key == 'p':  # open reader action menu (save / RSVP)
-            self._session_active = False
+            self._flush_session()
             from screens.reader_menu import ReaderMenuScreen
             self.ereader.current_screen = ReaderMenuScreen(self.ereader, self)
             return
         elif key == 'q':
-            _save_bookmark(self.book_file, self.current_page, self.font_size)
-            # Record reading session
-            pages_read = abs(self.current_page - self._session_start_page)
-            duration = _time.time() - self._session_start_time
-            words_read = sum(
-                len(line.text.split())
-                for pg in self.pages[self._session_start_page:self.current_page + 1]
-                for line in pg if line.kind == 'body'
-            )
-            from utils.stats import record_session
-            record_session(
-                book=os.path.splitext(self.book_file)[0],
-                pages=pages_read,
-                words=words_read,
-                duration_s=duration,
-            )
+            self._flush_session()
             from screens.library import LibraryScreen
             from utils.scanner import get_books_list
             books = get_books_list()
