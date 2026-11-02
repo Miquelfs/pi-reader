@@ -8,10 +8,11 @@ from screens.menu import MenuScreen
 # Set GPIO_ENABLED = True only after buttons are physically wired.
 # Floating (unwired) pins trigger spurious callbacks and cause constant redraws.
 GPIO_ENABLED = False
-PIN_UP     = 17
-PIN_DOWN   = 22
-PIN_SELECT = 23
-PIN_BACK   = 27
+# BCM 17/18/24/25 and SPI 8/10/11 belong to the e-paper display; I2C 2/3 to the PiSugar.
+PIN_UP     = 5    # physical pin 29
+PIN_DOWN   = 6    # physical pin 31
+PIN_SELECT = 13   # physical pin 33
+PIN_BACK   = 26   # physical pin 37 — shared GND on pin 39
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Auto-sleep default (overridden by content/config.json at runtime)

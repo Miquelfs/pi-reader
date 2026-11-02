@@ -4,7 +4,8 @@
 - Raspberry Pi Zero 2 WH
 - Waveshare 3.7" E-Ink display (480×280px, 1-bit black/white, landscape)
 - PiSugar 2 battery HAT (I2C — currently not responding, see Known Issues)
-- 4 physical buttons to be wired (BCM pins 17/22/23/27 reserved) — keyboard fallback active
+- 4 physical buttons on BCM 5/6/13/26 (pins 29/31/33/37, GND 39) — keyboard fallback until GPIO_ENABLED=True
+- E-paper connected by cable (not as HAT): RST 17, DC 25, CS 8, BUSY 24, PWR 18, MOSI 10, SCLK 11
 
 ## Architecture
 
