@@ -61,8 +61,9 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 - Walls 2 mm minimum. PLA or PETG, 0.2 mm layers. Minimal look, slight edge chamfer.
 
 ## Power
-- Off for storage/travel: PiSugar slide switch, via the case slider (printed in 3 stem
-  lengths because the lever is nearly flush; keep the one that catches it). ON = toward the top.
+- Off for storage/travel: PiSugar slide switch, flicked through a slot in the right wall with a
+  toothpick or SIM pin. ON = toward the top. (A printed slider was dropped: its stem would
+  scrape the PiSugar PCB edge and the Pi's HDMI connector while the back shell closes.)
 - Safe shutdown first (planned software): long-press Back ~3 s → Obelix screen → halt,
   then slide the switch off. Avoids SD-card corruption from hard power cuts.
 - On: slide the switch on → boots straight into the last book.
@@ -77,7 +78,7 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 | Display + foam + Pi stack | Glass front to header pin tips | 37.11 mm |
 | Full stack, display plugged on Pi (abandoned layout) | Total thickness | 42.21 mm |
 | Pi ↔ PiSugar board gap | At header end | ~1–2 mm — too tight to solder under the header |
-| Display board | Glass front to back of PCB (no socket) | 8 mm |
+| Display board | "8 mm" — includes the cable connector; glass→pin tips (37.11) minus Pi stack (30.62) leaves 6.49 mm for board + glass + foam |
 | Display glass | W × H | 92.15 × 57.2 mm |
 | Image area | W × H (datasheet) | 81.12 × 47.32 mm — confirm with tools/frame_test.py |
 | Image area (frame_test.py) | Board edge → frame: left / right / bottom / top | 14.21 / 10.62 / 10.10 / 11.12 mm — size doesn't match 480:280, so the window uses this centre with the datasheet size |
@@ -91,6 +92,8 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 ## Files
 - `case/build_case.py` — parametric model (Python + manifold3d). `python3 case/build_case.py`
   writes print-ready STLs to `case/stl/`. Change a measurement at the top, re-run.
+- `case/check_case.py` — fit check: parts vs component stand-ins, closing path, screws, ports,
+  printability. Run it after every change, before printing.
 - `tools/frame_test.py` — draws a frame on the panel edge pixels to measure the image area.
 
 ## v2 (after the trip)
