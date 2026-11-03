@@ -32,6 +32,13 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 - Stepped profile: thin section behind the screen (socket height), deep grip behind the
   wing (Pi stack).
 
+## Decisions from measurements (2026-11-03)
+- Switches are tall 6×6 (9.96 mm). Their plungers poke 1 mm through 4.2 mm holes in the
+  front panel; no printed caps.
+- Jumper plugs on the header stand 37 mm with their wires, which would make a 73 mm grip.
+  Wires are soldered directly onto the header pin tips and bent flat (~4 mm): grip 49.7 mm.
+- Back shell prints back-face down with supports touching the build plate only.
+
 ## Wiring
 | Signal | Pi physical pin | BCM |
 |---|---|---|
@@ -43,14 +50,13 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 | Button ground (chained) | 39 | — |
 
 ## Buttons
-- 6×6 tactile (~5 mm tall), ~14 mm pitch, single column in the wing:
+- 6×6 tactile, 9.96 mm tall, ~14 mm pitch, single column in the wing:
   Back, Up, Down, Select (top → bottom).
 - Each button: signal wire on one leg, ground on the diagonally opposite leg. Ground legs
   chained with short solid-core links; one ground wire to pin 39.
 - Legs bent flat before soldering to keep the assembly thin; Kapton over the legs.
-- Mounted in a printed holder bar (4 pockets, plungers facing the front) screwed to the
-  front shell. Printed caps with a retaining flange sit in the front-shell holes:
-  dot (Back), ▲ and ▼ (page turns), ring (Select).
+- Mounted in the printed retainer (4 pockets, legs through slots in its floor, soldered on
+  its back), screwed to two posts in the front shell. Plungers poke through the front.
 
 ## Case
 - Front shell: screen window with ~1.5 mm lip over the glass edge, wing with 4 cap holes,

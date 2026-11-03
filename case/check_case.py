@@ -16,11 +16,7 @@ def report(ok, msg):
     if not ok: problems.append(msg)
 
 front, back, ret, spacer = C.front_shell(), C.back_shell(), C.button_retainer(), C.pi_spacer()
-caps = None
-for n, y in C.BUTTONS:
-    c = C.button_cap(n).rotate([180, 0, 0]).translate([C.BTN_X, y, C.LIP + C.CAP_FLANGE_T])
-    caps = c if caps is None else caps + c
-printed = {'front': front, 'back': back, 'retainer': ret, 'spacer': spacer, 'caps': caps}
+printed = {'front': front, 'back': back, 'retainer': ret, 'spacer': spacer}
 
 # ── realistic stand-ins (model frame) ────────────────────────────────────────
 T = 3.5; FOAM = (C.BATTERY_Z - C.PI_SPACER) - (C.GLASS_Z + T)
@@ -41,7 +37,7 @@ comp = {
  'PiSugar USB':        box(C.PI_X1 - 5, sd(55.8), C.CHARGE_Z - 1.4, C.PI_X1 + 0.5, sd(48.2), C.CHARGE_Z + 1.4),
  'PiSugar switch':     box(C.PI_X1 - 3, sd(15.5), C.SWITCH_Z - 0.6, C.PI_X1 + 0.3, sd(11.5), C.SWITCH_Z + 0.6),
  'SD card':            box(C.PI_X0 + 9, C.PI_Y1, pcb_b - 1.5, C.PI_X0 + 21, C.PI_Y1 + 2.5, pcb_b),
- 'header+jumpers+wires': box(C.PI_X0 + 0.9, C.PI_Y0 + 5.8, pcb_b + 2.5, C.PI_X0 + 6.1, C.PI_Y0 + 59.2, C.PIN_TIPS_Z + C.DUPONT - 0.3),
+ 'header+soldered wires': box(C.PI_X0 + 0.9, C.PI_Y0 + 5.8, pcb_b + 2.5, C.PI_X0 + 6.1, C.PI_Y0 + 59.2, C.PIN_TIPS_Z + C.WIRES_ON_PINS - 0.3),
 }
 for x in (C.PI_X0 + 3.5, C.PI_X1 - 3.5):
     for y in (C.PI_Y0 + 3.5, C.PI_Y1 - 3.5):
@@ -49,16 +45,17 @@ for x in (C.PI_X0 + 3.5, C.PI_X1 - 3.5):
 legs = None
 for n, y in C.BUTTONS:
     comp[f'switch {n}'] = box(C.BTN_X - 3, y - 3, C.BTN_PLUNGER_Z + C.BTN_PLUNGER, C.BTN_X + 3, y + 3, C.BTN_PLUNGER_Z + C.BTN_PLUNGER + C.BTN_BODY)
-    comp[f'plunger {n}'] = cyl(C.BTN_X, y, C.BTN_PLUNGER_Z, C.BTN_PLUNGER_Z + C.BTN_PLUNGER, 3.4)
+    comp[f'plunger {n}'] = cyl(C.BTN_X, y, C.BTN_PLUNGER_Z, C.BTN_PLUNGER_Z + C.BTN_PLUNGER, 3.5)
     for sx in (-1, 1):
         for sy in (-1, 1):
-            l = box(C.BTN_X + sx * 3.25 - 0.5, y + sy * 2.25 - 0.5, C.RET_Z1, C.BTN_X + sx * 3.25 + 0.5, y + sy * 2.25 + 0.5, C.RET_Z1 + 1.5)
+            l = box(C.BTN_X + sx * 3.25 - 0.5, y + sy * 2.25 - 0.5, C.RET_Z1, C.BTN_X + sx * 3.25 + 0.5, y + sy * 2.25 + 0.5, C.RET_Z1 + 1.2)
             legs = l if legs is None else legs + l
 comp['trimmed legs+solder'] = legs
 rx0 = C.BTN_X - C.RET_W / 2
 comp['wires in channel'] = box(rx0 + 1.4, C.RET_POSTS[1] - 4, C.RET_Z1, rx0 + C.RET_W - 1.4, C.RET_POSTS[0] + 4, C.RET_Z1 + 1.6)
 
 print(f"\nStack: glass {C.GLASS_Z} → board {T} → foam {FOAM:.2f} (implied) → spacer {C.PI_SPACER} → battery {C.BATTERY_Z:.2f} → pin tips {C.PIN_TIPS_Z:.2f} → back {C.GRIP_BACK:.2f}")
+print(f"Buttons: plunger tip {C.BTN_PLUNGER_Z:.2f} → body {C.RET_Z0:.2f}–{C.RET_Z0 + C.BTN_BODY:.2f} → retainer floor to {C.RET_Z1:.2f}")
 report(FOAM > 0.5, f"foam left between board and spacer: {FOAM:.2f} mm (board+glass assumed {T})")
 
 print("\n1. Parts vs components (static fit)")
@@ -82,8 +79,10 @@ print("\n2. Contacts that must exist")
 ret_top = ret.bounding_box()[5]
 report(abs(C.BATTERY_Z - ret_top - 0.2) < 0.01, f"battery rests 0.2 mm above retainer rails (rail top {ret_top:.2f}, battery {C.BATTERY_Z:.2f})")
 report(abs(spacer.bounding_box()[5] - C.BATTERY_Z) < 0.01, "spacer top = battery front (stack supported over the board)")
-cap_play = C.BTN_PLUNGER_Z - (C.LIP + C.CAP_FLANGE_T)
-report(0.1 <= cap_play <= 0.4, f"cap play before the switch: {cap_play:.2f} mm (switch travel ~0.25)")
+report(0.8 <= C.PLUNGER_PROUD <= 1.5, f"plunger stands {C.PLUNGER_PROUD} mm proud of the front face (switch travel ~0.25)")
+report((C.PLUNGER_HOLE - 3.5) / 2 >= 0.3, f"plunger hole radial clearance {(C.PLUNGER_HOLE - 3.5) / 2:.2f} mm")
+legs_top = C.RET_Z1 + 1.2
+report(C.BATTERY_Z - legs_top >= 0.5, f"trimmed legs + solder (to {legs_top:.2f}) clear the battery ({C.BATTERY_Z:.2f}) by {C.BATTERY_Z - legs_top:.2f} mm")
 socket_gap = (C.THIN_BACK - C.WALL) - (C.LIP + C.SOCKET_DEPTH)
 report(0.5 <= socket_gap <= 1.5, f"gap socket top → back shell (for 1 mm foam pad that holds the display): {socket_gap:.2f} mm")
 corner_post_end = C.PI_PCB_BACK_Z + 2.3

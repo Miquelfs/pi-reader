@@ -41,7 +41,7 @@ ACTIVE_W, ACTIVE_H = 81.12, 47.32
 WINDOW_X0 = IMG_LEFT + (BOARD_W - IMG_LEFT - IMG_RIGHT) / 2 - ACTIVE_W / 2
 WINDOW_Y0 = IMG_BOTTOM + (BOARD_H - IMG_BOTTOM - IMG_TOP) / 2 - ACTIVE_H / 2
 PI_ABOVE_BOARD = 1.7     # Pi PCB (SD-card end) past the board's top edge
-DUPONT = 12.0            # jumper housings past the pin tips + tight wire bend
+WIRES_ON_PINS = 4.0      # wires soldered to the pin tips and bent flat (jumper plugs need 37)
 
 # ── Design ───────────────────────────────────────────────────────────────────
 WALL = 2.0
@@ -56,12 +56,14 @@ PI_W, PI_L = 30.0, 65.0
 PI_PORT_GAP = 1.5        # Pi connectors overhang the PCB edge slightly
 # Printed plate under the Pi stack (on top of the existing foam). Without it the battery,
 # which overhangs the button wing, would sit on the button retainer.
-PI_SPACER = 4.0
+PI_SPACER = 5.0
 
 BTN_PITCH = 14.0
-BTN_HOLE = 7.2
-CAP_D, CAP_FLANGE_D, CAP_FLANGE_T, CAP_PROUD = 6.6, 9.4, 1.0, 1.2
-BTN_BODY, BTN_PLUNGER = 3.5, 1.5   # 6×6 tactile, 5 mm total
+# Tall 6×6 tactile switches (9.96 mm measured): the plunger itself pokes through the front
+BTN_TOTAL, BTN_BODY = 9.96, 3.5
+BTN_PLUNGER = BTN_TOTAL - BTN_BODY
+PLUNGER_HOLE = 4.2       # round 3.5 mm plunger
+PLUNGER_PROUD = 1.0
 BTN_LEG_PITCH = 6.5
 SCREW_PILOT, SCREW_CLEAR, SCREW_HEAD = 2.2, 2.9, 5.6   # M2.5 self-tapping
 FN = 48
@@ -75,7 +77,7 @@ GLASS_Z = LIP
 PIN_TIPS_Z = LIP + STACK_DEPTH + PI_SPACER
 BATTERY_Z = PIN_TIPS_Z - PI_STACK                 # battery's front face
 THIN_BACK = LIP + SOCKET_DEPTH + 1.0 + WALL       # 1 mm foam pad on the socket
-GRIP_BACK = PIN_TIPS_Z + DUPONT + WALL
+GRIP_BACK = PIN_TIPS_Z + WIRES_ON_PINS + WALL
 PI_X1 = W - WALL - PI_PORT_GAP                    # port side
 PI_X0 = PI_X1 - PI_W
 PI_Y1 = BY1 + PI_ABOVE_BOARD                      # SD-card end
@@ -91,9 +93,9 @@ BTN_MID_Y = (BY0 + BY1) / 2
 # top → bottom: Back, Up, Down, Select
 BUTTONS = [('back', BTN_MID_Y + 1.5 * BTN_PITCH), ('up', BTN_MID_Y + 0.5 * BTN_PITCH),
            ('down', BTN_MID_Y - 0.5 * BTN_PITCH), ('select', BTN_MID_Y - 1.5 * BTN_PITCH)]
-BTN_PLUNGER_Z = LIP + CAP_FLANGE_T + 0.2          # cap play, so nothing preloads a switch
-RET_Z0 = BTN_PLUNGER_Z + BTN_PLUNGER                # retainer front face
-RET_FLOOR = 1.5
+BTN_PLUNGER_Z = -PLUNGER_PROUD                      # plunger tip, in front of the case face
+RET_Z0 = BTN_PLUNGER_Z + BTN_PLUNGER                # retainer front face = switch body front
+RET_FLOOR = 1.2
 RET_Z1 = RET_Z0 + BTN_BODY + RET_FLOOR
 RET_W = 12.0
 RET_POSTS = [BUTTONS[0][1] + 10, BUTTONS[-1][1] - 10]
@@ -138,7 +140,7 @@ def front_shell():
     shell -= window
 
     for _, y in BUTTONS:
-        shell -= cyl(BTN_X, y, -1, LIP + 1, BTN_HOLE)
+        shell -= cyl(BTN_X, y, -1, LIP + 1, PLUNGER_HOLE)
 
     # L-shaped locators at the board corners
     t, leg, hgt, c = 1.2, 6.0, 3.0, 0.3
@@ -234,21 +236,6 @@ def button_retainer():
     return part
 
 
-def button_cap(name):
-    shaft = CAP_FLANGE_T + LIP + CAP_PROUD
-    cap = cyl(0, 0, 0, CAP_FLANGE_T, CAP_FLANGE_D) + cyl(0, 0, 0, shaft, CAP_D)
-    top, h = shaft, 0.5
-    if name == 'up':
-        cap += polygon([(-1.8, -1.2), (1.8, -1.2), (0, 1.8)], h).translate([0, 0, top])
-    elif name == 'down':
-        cap += polygon([(-1.8, 1.2), (0, -1.8), (1.8, 1.2)], h).translate([0, 0, top])
-    elif name == 'select':
-        cap += cyl(0, 0, top, top + h, 4.4) - cyl(0, 0, top - 1, top + h + 1, 2.8)
-    else:
-        cap += cyl(0, 0, top, top + h, 1.8)
-    return cap
-
-
 def pi_spacer():
     """Sits between the foam on the display board and the battery, over the board only."""
     x0, x1 = PI_X0 + 0.5, BX1 - 0.5
@@ -290,8 +277,6 @@ def parts():
         'button_retainer': for_printing(real(button_retainer())),   # front face down
         'pi_spacer': for_printing(real(pi_spacer())),
     }
-    for name, _ in BUTTONS:
-        out[f'cap_{name}'] = for_printing(button_cap(name))
     return out
 
 
