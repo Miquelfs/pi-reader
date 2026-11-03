@@ -30,10 +30,15 @@ CHARGE_Z = 25.8          # ...depth from the case front face
 SWITCH_Y = 13.6          # PiSugar slide switch centre; ON is toward the SD-card end
 SWITCH_Z = 25.8          # slider stem centre — lever sits just in front of the PiSugar PCB
 
+# tools/frame_test.py: board edge → outer frame line, front view (ribbon left, plug bottom)
+IMG_LEFT, IMG_RIGHT, IMG_BOTTOM, IMG_TOP = 14.21, 10.62, 10.10, 11.12
+
 # ── Estimated ────────────────────────────────────────────────────────────────
-ACTIVE_W, ACTIVE_H = 81.12, 47.32  # panel's image area (datasheet)
-WINDOW_X0 = (BOARD_W - ACTIVE_W) / 2   # image area offset from board LEFT edge (frame_test.py)
-WINDOW_Y0 = (BOARD_H - ACTIVE_H) / 2   # image area offset from board BOTTOM edge (frame_test.py)
+# The measured image (76.9 × 41.9) isn't 480:280, so trust its centre, not its size:
+# the window is the datasheet image area centred there, which can't clip any pixels.
+ACTIVE_W, ACTIVE_H = 81.12, 47.32
+WINDOW_X0 = IMG_LEFT + (BOARD_W - IMG_LEFT - IMG_RIGHT) / 2 - ACTIVE_W / 2
+WINDOW_Y0 = IMG_BOTTOM + (BOARD_H - IMG_BOTTOM - IMG_TOP) / 2 - ACTIVE_H / 2
 PI_ABOVE_BOARD = 1.7     # Pi PCB (SD-card end) past the board's top edge
 DUPONT = 12.0            # jumper housings past the pin tips + tight wire bend
 # The lever is nearly flush with the PCB edge; print all three and keep the one that catches it

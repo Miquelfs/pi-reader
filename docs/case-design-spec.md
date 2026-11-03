@@ -81,7 +81,7 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 | Display board | Glass front to back of PCB (no socket) | 8 mm |
 | Display glass | W × H | 92.15 × 57.2 mm |
 | Image area | W × H (datasheet) | 81.12 × 47.32 mm — confirm with tools/frame_test.py |
-| Image area | Offset from board left / bottom edge (front view) | ___ / ___ mm (frame_test.py) |
+| Image area (frame_test.py) | Board edge → frame: left / right / bottom / top | 14.21 / 10.62 / 10.10 / 11.12 mm — size doesn't match 480:280, so the window uses this centre with the datasheet size |
 | Board height incl. cable plug + bend | | 77.77 mm (plug sticks out 14.7) |
 | Pi stack | Overhang past board edge | 0 when measured; the case sets it to the wing (ports at the wall) |
 | PiSugar charge port | Along the PiSugar from its SD-card end | ends at 55.81 mm (centre ~52); ~25.8 mm behind the case front (from side photo) |
