@@ -92,6 +92,8 @@ RET_FLOOR = 1.5
 RET_Z1 = RET_Z0 + BTN_BODY + RET_FLOOR
 RET_W = 12.0
 RET_POSTS = [BUTTONS[0][1] + 10, BUTTONS[-1][1] - 10]
+RET_POST_TOP = RET_Z1 - 2.0      # posts rise into the retainer so an M2.5×6 bites ~5 mm
+RET_HEAD_RECESS = 0.8
 
 BOSSES = [(10, WALL + 3.5), (70, WALL + 3.5), (10, H - WALL - 3.0), (75, H - WALL - 3.0)]
 
@@ -149,8 +151,8 @@ def front_shell():
         shell -= cyl(x, y, SPLIT - 9, SPLIT + 1, SCREW_PILOT)
 
     for y in RET_POSTS:
-        shell += cyl(BTN_X, y, LIP, RET_Z0, 6.0)
-        shell -= cyl(BTN_X, y, LIP + 0.6, RET_Z0 + 1, SCREW_PILOT)
+        shell += cyl(BTN_X, y, LIP, RET_POST_TOP, 6.0)
+        shell -= cyl(BTN_X, y, LIP + 0.3, RET_POST_TOP + 1, SCREW_PILOT)
     return shell
 
 
@@ -215,8 +217,9 @@ def button_retainer():
             lx = BTN_X + sx * BTN_LEG_PITCH / 2
             part -= box(lx - 0.7, y - 2.95, RET_Z0 - 1, lx + 0.7, y + 2.95, RET_Z1 + 1)
     for y in RET_POSTS:
+        part -= cyl(BTN_X, y, RET_Z0 - 1, RET_POST_TOP + 0.2, 6.4)
         part -= cyl(BTN_X, y, RET_Z0 - 1, RET_Z1 + 1, SCREW_CLEAR)
-        part -= cyl(BTN_X, y, RET_Z1 - 2, RET_Z1 + 1, SCREW_HEAD)
+        part -= cyl(BTN_X, y, RET_Z1 - RET_HEAD_RECESS, RET_Z1 + 1, SCREW_HEAD)
     return part
 
 
