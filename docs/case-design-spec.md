@@ -24,7 +24,9 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
   is unused. Display connects through its 8-wire PH2.0 cable (connector on the BOTTOM edge).
 - Pi + PiSugar lie crossways on the RIGHT end of the display back (free strip beside the
   socket), overhanging the board edge into the wing so the ports face the right wall.
-  Foam between battery and display board.
+  Foam on the display board, then the printed Pi spacer (4 mm), then the battery. The spacer
+  lifts the stack so the battery overhanging the wing rests on the button retainer's rails,
+  not on the switches.
 - Header faces the back lid. Pin 1 (SD card end) toward the TOP.
 - Text orientation: reads upright in this layout with no software flip (verified 2026-11-03).
 - Stepped profile: thin section behind the screen (socket height), deep grip behind the
