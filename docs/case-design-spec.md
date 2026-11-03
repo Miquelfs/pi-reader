@@ -26,8 +26,7 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
   socket), overhanging the board edge into the wing so the ports face the right wall.
   Foam between battery and display board.
 - Header faces the back lid. Pin 1 (SD card end) toward the TOP.
-- Text orientation: the panel's text bottom is on the PH2.0 side, so this layout should
-  read upright with no software flip. Verify on the device before printing.
+- Text orientation: reads upright in this layout with no software flip (verified 2026-11-03).
 - Stepped profile: thin section behind the screen (socket height), deep grip behind the
   wing (Pi stack).
 
