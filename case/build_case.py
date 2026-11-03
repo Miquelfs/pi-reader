@@ -1,0 +1,298 @@
+"""
+Parametric case for the Pi-Reader. Writes printable STLs to case/stl/.
+
+    pip install manifold3d numpy
+    python3 case/build_case.py
+
+Coordinates (mm), front view as held in the right hand:
+    x  left → right (button wing on the right)
+    y  bottom → top (display cable plug in the bottom "chin")
+    z  front face (0) → back
+With z pointing away from the viewer this frame is a mirror image, so every part is
+mirrored in x on export (see parts()).
+Layout and measurements: docs/case-design-spec.md
+"""
+import os
+import struct
+from functools import reduce
+
+import manifold3d as m3d
+
+# ── Measured ─────────────────────────────────────────────────────────────────
+BOARD_W, BOARD_H = 101.7, 63.1   # display board outline
+BOARD_T = 8.0                    # glass front → back of display PCB
+SOCKET_DEPTH = 22.0              # glass front → top of the unused 40-pin socket
+STACK_DEPTH = 37.11              # glass front → Pi header pin tips (Pi stack on foam)
+CABLE_PLUG = 14.7                # display cable plug + bend, below the board's bottom edge
+# Along the Pi from its SD-card end; depths read off a side photo scaled by the 65 mm Pi
+CHARGE_Y = 52.0          # PiSugar charge port centre (port ends at 55.8)
+CHARGE_Z = 25.8          # ...depth from the case front face
+SWITCH_Y = 13.6          # PiSugar slide switch centre; ON is toward the SD-card end
+SWITCH_Z = 25.8          # slider stem centre — lever sits just in front of the PiSugar PCB
+
+# ── Estimated ────────────────────────────────────────────────────────────────
+ACTIVE_W, ACTIVE_H = 81.12, 47.32  # panel's image area (datasheet)
+WINDOW_X0 = (BOARD_W - ACTIVE_W) / 2   # image area offset from board LEFT edge (frame_test.py)
+WINDOW_Y0 = (BOARD_H - ACTIVE_H) / 2   # image area offset from board BOTTOM edge (frame_test.py)
+PI_ABOVE_BOARD = 1.7     # Pi PCB (SD-card end) past the board's top edge
+DUPONT = 12.0            # jumper housings past the pin tips + tight wire bend
+# The lever is nearly flush with the PCB edge; print all three and keep the one that catches it
+LEVER_REACHES = {'short': 0.8, 'medium': 0.3, 'long': -0.3}
+
+# ── Design ───────────────────────────────────────────────────────────────────
+WALL = 2.0
+LIP = 1.6                # front plate thickness over the glass
+R = 4.0                  # outer corner radius
+LEFT_GAP = 2.0           # display ribbon wraps around the board's left edge
+TOP_GAP = 6.0            # SD card + screw bosses
+CHIN = CABLE_PLUG + 0.3
+WING = 18.0              # button column
+SPLIT = 12.0             # front/back shell joint
+PI_W, PI_L = 30.0, 65.0
+PI_PORT_GAP = 1.5        # room for the PiSugar switch lever + slider fork
+
+BTN_PITCH = 14.0
+BTN_HOLE = 7.2
+CAP_D, CAP_FLANGE_D, CAP_FLANGE_T, CAP_PROUD = 6.6, 9.4, 1.0, 1.2
+BTN_BODY, BTN_PLUNGER = 3.5, 1.5   # 6×6 tactile, 5 mm total
+BTN_LEG_PITCH = 6.5
+SCREW_PILOT, SCREW_CLEAR, SCREW_HEAD = 2.2, 2.9, 5.6   # M2.5 self-tapping
+FN = 48
+
+# ── Derived ──────────────────────────────────────────────────────────────────
+BX0, BY0 = WALL + LEFT_GAP, WALL + CHIN          # board lower-left
+BX1, BY1 = BX0 + BOARD_W, BY0 + BOARD_H
+W = BX1 + WING + WALL
+H = BY1 + TOP_GAP + WALL
+GLASS_Z = LIP
+PIN_TIPS_Z = LIP + STACK_DEPTH
+THIN_BACK = LIP + SOCKET_DEPTH + 1.0 + WALL       # 1 mm foam pad on the socket
+GRIP_BACK = PIN_TIPS_Z + DUPONT + WALL
+PI_X1 = W - WALL - PI_PORT_GAP                    # port side
+PI_X0 = PI_X1 - PI_W
+PI_Y1 = BY1 + PI_ABOVE_BOARD                      # SD-card end
+PI_Y0 = PI_Y1 - PI_L
+PI_PCB_BACK_Z = PIN_TIPS_Z - 8.5
+GRIP_X0 = PI_X0 - 6.0
+RAMP = GRIP_BACK - THIN_BACK
+
+BTN_X = BX1 + WING / 2
+BTN_MID_Y = (BY0 + BY1) / 2
+# top → bottom: Back, Up, Down, Select
+BUTTONS = [('back', BTN_MID_Y + 1.5 * BTN_PITCH), ('up', BTN_MID_Y + 0.5 * BTN_PITCH),
+           ('down', BTN_MID_Y - 0.5 * BTN_PITCH), ('select', BTN_MID_Y - 1.5 * BTN_PITCH)]
+BTN_PLUNGER_Z = LIP + CAP_FLANGE_T
+RET_Z0 = BTN_PLUNGER_Z + BTN_PLUNGER                # retainer front face
+RET_FLOOR = 1.5
+RET_Z1 = RET_Z0 + BTN_BODY + RET_FLOOR
+RET_W = 12.0
+RET_POSTS = [BUTTONS[0][1] + 10, BUTTONS[-1][1] - 10]
+
+BOSSES = [(10, WALL + 3.5), (70, WALL + 3.5), (10, H - WALL - 3.0), (75, H - WALL - 3.0)]
+
+
+def box(x0, y0, z0, x1, y1, z1):
+    return m3d.Manifold.cube([x1 - x0, y1 - y0, z1 - z0]).translate([x0, y0, z0])
+
+
+def cyl(x, y, z0, z1, d):
+    return m3d.Manifold.cylinder(z1 - z0, d / 2, d / 2, FN).translate([x, y, z0])
+
+
+def rounded(x0, y0, x1, y1, z0, z1, r):
+    pts = [(x0 + r, y0 + r), (x1 - r, y0 + r), (x0 + r, y1 - r), (x1 - r, y1 - r)]
+    cs = m3d.CrossSection.batch_hull([m3d.CrossSection.circle(r, FN).translate(p) for p in pts])
+    return m3d.Manifold.extrude(cs, z1 - z0).translate([0, 0, z0])
+
+
+def union(parts):
+    return reduce(lambda a, b: a + b, parts)
+
+
+def polygon(points, h):
+    return m3d.Manifold.extrude(m3d.CrossSection([points]), h)
+
+
+# ── Parts ────────────────────────────────────────────────────────────────────
+
+def front_shell():
+    shell = rounded(0, 0, W, H, 0, SPLIT, R) - rounded(WALL, WALL, W - WALL, H - WALL, LIP, SPLIT + 1, R - WALL)
+
+    # window bevelled 45° outward so the frame doesn't shade the image edge
+    wx0, wy0 = BX0 + WINDOW_X0 - 0.5, BY0 + WINDOW_Y0 - 0.5
+    wx1, wy1 = wx0 + ACTIVE_W + 1.0, wy0 + ACTIVE_H + 1.0
+    window = (box(wx0, wy0, LIP - 0.01, wx1, wy1, LIP + 1)
+              + box(wx0 - LIP, wy0 - LIP, -1, wx1 + LIP, wy1 + LIP, -0.99)).hull()
+    shell -= window
+
+    for _, y in BUTTONS:
+        shell -= cyl(BTN_X, y, -1, LIP + 1, BTN_HOLE)
+
+    # L-shaped locators at the board corners
+    t, leg, hgt, c = 1.2, 6.0, 3.0, 0.3
+    for cx, sx in ((BX0 - c, -1), (BX1 + c, 1)):
+        for cy, sy in ((BY0 - c, -1), (BY1 + c, 1)):
+            xa, xb = sorted((cx, cx + sx * t))
+            ya, yb = sorted((cy, cy - sy * leg))
+            shell += box(xa, ya, LIP, xb, yb, LIP + hgt)
+            xa, xb = sorted((cx, cx - sx * leg))
+            ya, yb = sorted((cy, cy + sy * t))
+            shell += box(xa, ya, LIP, xb, yb, LIP + hgt)
+
+    for x, y in BOSSES:
+        shell += cyl(x, y, LIP, SPLIT, 6.0)
+        shell -= cyl(x, y, SPLIT - 9, SPLIT + 1, SCREW_PILOT)
+
+    for y in RET_POSTS:
+        shell += cyl(BTN_X, y, LIP, RET_Z0, 6.0)
+        shell -= cyl(BTN_X, y, LIP + 0.6, RET_Z0 + 1, SCREW_PILOT)
+    return shell
+
+
+def back_shell():
+    def body(inset, z0):
+        x0, y0, x1, y1 = inset, inset, W - inset, H - inset
+        r = max(R - inset, 0.5)
+        thin = rounded(x0, y0, x1, y1, z0, THIN_BACK - inset, r)
+        # inner ramp shifted along x as well, so the 45° wall keeps ~WALL normal thickness
+        dx = 0.8 if inset else 0
+        grip = (rounded(GRIP_X0 + dx, y0, x1, y1, z0, GRIP_BACK - inset, r)
+                + rounded(GRIP_X0 - RAMP + dx, y0, GRIP_X0 + dx + 1, y1, z0, THIN_BACK - inset, r)).hull()
+        return thin + grip
+
+    shell = body(0, SPLIT) - body(WALL, SPLIT - 1)
+
+    # skirt that slides inside the front shell walls
+    skirt_out = rounded(WALL + 0.2, WALL + 0.2, W - WALL - 0.2, H - WALL - 0.2, SPLIT - 2, SPLIT + 0.01, R - WALL)
+    skirt_in = rounded(WALL + 1.4, WALL + 1.4, W - WALL - 1.4, H - WALL - 1.4, SPLIT - 3, SPLIT + 1, 1)
+    shell += skirt_out - skirt_in
+    shell -= box(BX0 + 27, 0, SPLIT - 3, BX0 + 53, WALL + 2, SPLIT + 0.5)   # display cable plug
+    for x, y in BOSSES:
+        shell -= cyl(x, y, SPLIT - 3, SPLIT + 1, 7.0)   # clear the front bosses
+
+    inner_back = THIN_BACK - WALL
+    for x, y in BOSSES:
+        shell += cyl(x, y, SPLIT, inner_back, 6.0)
+        shell -= cyl(x, y, SPLIT - 1, THIN_BACK + 1, SCREW_CLEAR)
+        shell -= cyl(x, y, SPLIT + 4, THIN_BACK + 1, SCREW_HEAD)
+
+    # Pi stack: posts onto the PiSugar screw heads at the Pi corners, stops at both ends
+    grip_inner = GRIP_BACK - WALL
+    for x in (PI_X0 + 3.5, PI_X1 - 3.5):
+        for y in (PI_Y0 + 3.5, PI_Y1 - 3.5):
+            shell += cyl(x, y, PI_PCB_BACK_Z + 2.3, grip_inner + 0.5, 4.0)
+    shell += box(PI_X0 + 8, PI_Y0 - 1.3, PI_PCB_BACK_Z - 2, PI_X1, PI_Y0 - 0.3, grip_inner + 0.5)
+    shell += box(PI_X1 - 6, PI_Y1 + 0.3, PI_PCB_BACK_Z - 2, PI_X1, PI_Y1 + 1.3, grip_inner + 0.5)
+    for y in (PI_Y1 - 30, PI_Y1 - 4):    # keep the port side 1.5 mm off the wall
+        shell += box(PI_X1, y - 1.5, PI_PCB_BACK_Z - 1.4, W - WALL + 0.1, y + 1.5, PI_PCB_BACK_Z)
+
+    # right wall: charge opening (also exposes the Pi's PWR IN), switch slot in a recess
+    cy = PI_Y1 - CHARGE_Y
+    shell -= box(W - WALL - 1, cy - 6, CHARGE_Z - 4.5, W + 1, cy + 6, PI_PCB_BACK_Z + 3.5)
+    sy = PI_Y1 - SWITCH_Y
+    shell -= box(W - WALL - 1, sy - 3.5, SWITCH_Z - 1.6, W + 1, sy + 3.5, SWITCH_Z + 1.6)
+    shell -= box(W - 1.0, sy - 6, SWITCH_Z - 3.5, W + 1, sy + 6, SWITCH_Z + 3.5)
+
+    for i in range(4):
+        x = PI_X0 + 9 + i * 5
+        shell -= box(x, PI_Y0 + 18, GRIP_BACK - WALL - 1, x + 2, PI_Y1 - 18, GRIP_BACK + 1)
+    return shell
+
+
+def button_retainer():
+    """Holds the 4 switches like a PCB: legs poke through the floor and get soldered there."""
+    y0, y1 = RET_POSTS[1] - 4, RET_POSTS[0] + 4
+    x0 = BTN_X - RET_W / 2
+    part = box(x0, y0, RET_Z0, x0 + RET_W, y1, RET_Z1)
+    for _, y in BUTTONS:
+        part -= box(BTN_X - 3.6, y - 3.15, RET_Z0 - 1, BTN_X + 3.6, y + 3.15, RET_Z1 - RET_FLOOR)
+        for sx in (-1, 1):
+            lx = BTN_X + sx * BTN_LEG_PITCH / 2
+            part -= box(lx - 0.7, y - 2.95, RET_Z0 - 1, lx + 0.7, y + 2.95, RET_Z1 + 1)
+    for y in RET_POSTS:
+        part -= cyl(BTN_X, y, RET_Z0 - 1, RET_Z1 + 1, SCREW_CLEAR)
+        part -= cyl(BTN_X, y, RET_Z1 - 2, RET_Z1 + 1, SCREW_HEAD)
+    return part
+
+
+def button_cap(name):
+    shaft = CAP_FLANGE_T + LIP + CAP_PROUD
+    cap = cyl(0, 0, 0, CAP_FLANGE_T, CAP_FLANGE_D) + cyl(0, 0, 0, shaft, CAP_D)
+    top, h = shaft, 0.5
+    if name == 'up':
+        cap += polygon([(-1.8, -1.2), (1.8, -1.2), (0, 1.8)], h).translate([0, 0, top])
+    elif name == 'down':
+        cap += polygon([(-1.8, 1.2), (0, -1.8), (1.8, 1.2)], h).translate([0, 0, top])
+    elif name == 'select':
+        cap += cyl(0, 0, top, top + h, 4.4) - cyl(0, 0, top - 1, top + h + 1, 2.8)
+    else:
+        cap += cyl(0, 0, top, top + h, 1.8)
+    return cap
+
+
+def slider_knob(reach):
+    """Knob sits in the right-wall recess; the notch in the stem's tip catches the switch lever.
+    The stem is only 1.8 mm tall so a long variant can pass the PCB edge in front of the PiSugar board."""
+    stem_len = (WALL - 1.0) + PI_PORT_GAP - reach + 0.4
+    knob = box(0, -2.5, -2.5, 1.0, 2.5, 2.5)
+    stem = box(1.0, -1.7, -0.9, 1.0 + stem_len, 1.7, 0.9)
+    stem -= box(1.0 + stem_len - 1.0, -0.7, -2, 1.0 + stem_len + 1, 0.7, 2)
+    return knob + stem
+
+
+def slider_flange():
+    """Slides over the stem from inside and is glued there, so the knob can't fall out."""
+    return box(0, -4.5, -2.6, 0.6, 4.5, 2.6) - box(-1, -1.8, -1.0, 2, 1.8, 1.0)
+
+
+# ── Output ───────────────────────────────────────────────────────────────────
+
+def for_printing(part, flip=False):
+    """Lay the part flat on the bed (z = 0), optionally upside down."""
+    if flip:
+        part = part.rotate([180, 0, 0])
+    (x0, y0, z0, _, _, _) = part.bounding_box()
+    return part.translate([-x0, -y0, -z0])
+
+
+def write_stl(part, path):
+    mesh = part.to_mesh()
+    verts, tris = mesh.vert_properties[:, :3], mesh.tri_verts
+    with open(path, 'wb') as f:
+        f.write(b'pi-reader'.ljust(80, b' '))
+        f.write(struct.pack('<I', len(tris)))
+        for a, b, c in tris:
+            va, vb, vc = verts[a], verts[b], verts[c]
+            n = [(vb[1] - va[1]) * (vc[2] - va[2]) - (vb[2] - va[2]) * (vc[1] - va[1]),
+                 (vb[2] - va[2]) * (vc[0] - va[0]) - (vb[0] - va[0]) * (vc[2] - va[2]),
+                 (vb[0] - va[0]) * (vc[1] - va[1]) - (vb[1] - va[1]) * (vc[0] - va[0])]
+            f.write(struct.pack('<12fH', *n, *va, *vb, *vc, 0))
+
+
+def parts():
+    def real(part):
+        return part.mirror([1, 0, 0])
+
+    out = {
+        'front_shell': for_printing(real(front_shell())),
+        'back_shell': for_printing(real(back_shell()), flip=True),
+        'button_retainer': for_printing(real(button_retainer()), flip=True),
+        'slider_flange': for_printing(real(slider_flange()).rotate([0, -90, 0])),
+    }
+    for name, reach in LEVER_REACHES.items():
+        out[f'slider_knob_{name}'] = for_printing(real(slider_knob(reach)).rotate([0, -90, 0]))
+    for name, _ in BUTTONS:
+        out[f'cap_{name}'] = for_printing(button_cap(name))
+    return out
+
+
+if __name__ == '__main__':
+    out_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'stl')
+    os.makedirs(out_dir, exist_ok=True)
+    print(f"Case outside: {W:.1f} × {H:.1f} mm, {THIN_BACK:.1f} mm thin / {GRIP_BACK:.1f} mm grip")
+    for name, part in parts().items():
+        if part.is_empty():
+            raise SystemExit(f"{name} came out empty — check the parameters")
+        write_stl(part, os.path.join(out_dir, name + '.stl'))
+        x0, y0, z0, x1, y1, z1 = part.bounding_box()
+        print(f"  {name:16s} {x1 - x0:6.1f} × {y1 - y0:6.1f} × {z1 - z0:5.1f} mm")

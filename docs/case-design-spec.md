@@ -1,59 +1,99 @@
 # Pi-Reader Case Design Specification
 
 ## Purpose
-This document captures all hardware measurements and design requirements needed to generate a 3D-printable enclosure for the Pi-Reader device. Parked for Phase 2 — resume once software is stable and buttons are wired.
+Hardware measurements and design decisions for a 3D-printable enclosure. Front/back
+views below are as the reader is held (right hand, landscape).
 
-## Hardware Stack (top to bottom)
-1. Waveshare 3.7" e-Paper HAT (480×280px, 1-bit)
-2. Raspberry Pi Zero 2 WH
-3. PiSugar 2 battery HAT
+## Layout (decided 2026-11-03)
+One-handed landscape reader. The Pi stack sits under the button wing, so the heavy,
+thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 
-## Measurements needed before designing
-Fill these in with calipers before starting OpenSCAD:
+```
+ FRONT                                    thin section          │ grip
+┌──────────────────────────────────────┬───────┐
+│                                      │   ◦   │  Back
+│          e-paper 101.8 × 63.1        │   ▲   │  Up / prev page
+│     (orange flex on the LEFT edge)   │   ▼   │  Down / next page
+│                                      │   ●   │  Select
+├──────────────────────────────────────┴───────┤
+│  chin: display cable plug (PH2.0)            │◄ PiSugar charge port + power
+└──────────────────────────────────────────────┘   switch slider on RIGHT wall
+```
 
+- Display is NOT plugged into the Pi. Its 40-pin socket (on the back, along the TOP edge)
+  is unused. Display connects through its 8-wire PH2.0 cable (connector on the BOTTOM edge).
+- Pi + PiSugar lie crossways on the RIGHT end of the display back (free strip beside the
+  socket), overhanging the board edge into the wing so the ports face the right wall.
+  Foam between battery and display board.
+- Header faces the back lid. Pin 1 (SD card end) toward the TOP.
+- Text orientation: the panel's text bottom is on the PH2.0 side, so this layout should
+  read upright with no software flip. Verify on the device before printing.
+- Stepped profile: thin section behind the screen (socket height), deep grip behind the
+  wing (Pi stack).
+
+## Wiring
+| Signal | Pi physical pin | BCM |
+|---|---|---|
+| Display VCC / GND | 1 / 6 | — |
+| Display DIN / CLK / CS | 19 / 23 / 24 | 10 / 11 / 8 |
+| Display DC / RST / BUSY | 22 / 11 / 18 | 25 / 17 / 24 |
+| Button Up / Down | 29 / 31 | 5 / 6 |
+| Button Select / Back | 33 / 37 | 13 / 26 |
+| Button ground (chained) | 39 | — |
+
+## Buttons
+- 6×6 tactile (~5 mm tall), ~14 mm pitch, single column in the wing:
+  Back, Up, Down, Select (top → bottom).
+- Each button: signal wire on one leg, ground on the diagonally opposite leg. Ground legs
+  chained with short solid-core links; one ground wire to pin 39.
+- Legs bent flat before soldering to keep the assembly thin; Kapton over the legs.
+- Mounted in a printed holder bar (4 pockets, plungers facing the front) screwed to the
+  front shell. Printed caps with a retaining flange sit in the front-shell holes:
+  dot (Back), ▲ and ▼ (page turns), ring (Select).
+
+## Case
+- Front shell: screen window with ~1.5 mm lip over the glass edge, wing with 4 cap holes,
+  4 screw bosses.
+- Back shell: stepped. Ribs press the display board onto the front lip through foam pads;
+  walls locate the Pi stack; right-wall openings for the PiSugar charge port and a recessed
+  slider that drives the PiSugar power switch.
+- Joined with 4 self-tapping M2.5 screws into printed bosses (no inserts needed).
+- A few vent slots over the Pi.
+- Walls 2 mm minimum. PLA or PETG, 0.2 mm layers. Minimal look, slight edge chamfer.
+
+## Power
+- Off for storage/travel: PiSugar slide switch, via the case slider (printed in 3 stem
+  lengths because the lever is nearly flush; keep the one that catches it). ON = toward the top.
+- Safe shutdown first (planned software): long-press Back ~3 s → Obelix screen → halt,
+  then slide the switch off. Avoids SD-card corruption from hard power cuts.
+- On: slide the switch on → boots straight into the last book.
+
+## Measurements
 | Component | Measurement | Value |
 |---|---|---|
-| Waveshare HAT PCB | Length × Width | ___ × ___ mm |
-| Waveshare HAT PCB | Thickness | ___ mm |
-| Display panel active area | Width × Height | ___ × ___ mm |
-| Display panel total | Width × Height including bezel | ___ × ___ mm |
-| FPC ribbon cable | Length from HAT to panel | ___ mm |
-| Pi Zero PCB | Length × Width | 65 × 30 mm (standard) |
-| Pi Zero PCB | Thickness | ___ mm |
-| PiSugar 2 | Length × Width | ___ × ___ mm |
-| PiSugar 2 | Thickness | ___ mm |
-| Full stack (Pi + PiSugar) | Total height | ___ mm |
-| USB port (PWR IN) | Distance from Pi bottom edge | ___ mm |
-| USB port | Width × Height of cutout needed | ___ × ___ mm |
-| GPIO header | Height above Pi PCB | ___ mm |
+| Display board | Length × Width | 101.81 × 63.11 mm |
+| Display board with socket | Glass front to socket top | 22 mm |
+| Display 40-pin socket | Position along long edge | ~15–68 mm from orange-flex end |
+| Pi + PiSugar + battery | Battery back to header pin tips | 30.62 mm |
+| Display + foam + Pi stack | Glass front to header pin tips | 37.11 mm |
+| Full stack, display plugged on Pi (abandoned layout) | Total thickness | 42.21 mm |
+| Pi ↔ PiSugar board gap | At header end | ~1–2 mm — too tight to solder under the header |
+| Display board | Glass front to back of PCB (no socket) | 8 mm |
+| Display glass | W × H | 92.15 × 57.2 mm |
+| Image area | W × H (datasheet) | 81.12 × 47.32 mm — confirm with tools/frame_test.py |
+| Image area | Offset from board left / bottom edge (front view) | ___ / ___ mm (frame_test.py) |
+| Board height incl. cable plug + bend | | 77.77 mm (plug sticks out 14.7) |
+| Pi stack | Overhang past board edge | 0 when measured; the case sets it to the wing (ports at the wall) |
+| PiSugar charge port | Along the PiSugar from its SD-card end | ends at 55.81 mm (centre ~52); ~25.8 mm behind the case front (from side photo) |
+| PiSugar switch (white, under the PiSugar board) | Along the PiSugar from its SD-card end | 12.8 (ON) / 13.92 mm; ON = toward the SD-card end; lever ~26 mm behind the case front, nearly flush with the PCB edge |
+| PiSugar board | Thickness / gap to Pi | ~1.0 / ~0.8 mm (side photo) |
+| Pi stack with jumpers on | Glass front to furthest wire | 60 mm loose; case assumes ~49 with wires cut short and bent tight |
 
-## Button spec
-- Type: 6×6×9.5mm tactile momentary push button, through-hole, 4-pin
-- Quantity: 4 (up, down, select, back)
-- Placement: right side of case (portrait orientation), stacked vertically
-- Stem height 9.5mm chosen to protrude through case wall with tactile feel
+## Files
+- `case/build_case.py` — parametric model (Python + manifold3d). `python3 case/build_case.py`
+  writes print-ready STLs to `case/stl/`. Change a measurement at the top, re-run.
+- `tools/frame_test.py` — draws a frame on the panel edge pixels to measure the image area.
 
-## Design requirements
-- **Orientation**: portrait (display taller than wide)
-- **Two-part snap-fit**: front shell (display + buttons) + back lid (battery access)
-- **Display window**: cutout matching active area with ~1mm lip to retain panel
-- **Button holes**: 4× 7mm diameter circular holes on right edge, evenly spaced
-- **USB cutout**: bottom edge, for PiSugar2 charging port
-- **Ventilation**: Pi Zero 2 runs warm — consider 3–4 small slots on back
-- **Wall thickness**: 2mm minimum for FDM printing strength
-- **Material**: PLA or PETG, 0.2mm layer height recommended
-- **Aesthetics**: minimal, flush front face, slight chamfer on edges
-
-## Files to generate (when ready)
-- `case-front.scad` — display shell with window and button holes
-- `case-back.scad` — back lid with snap clips and USB cutout
-- `case-assembly.scad` — full assembly preview
-
-## Resume checklist
-- [ ] Fill in all measurements above
-- [ ] Confirm button GPIO pin assignments
-- [ ] Confirm PiSugar2 charging port position
-- [ ] Decide final orientation (portrait vs landscape)
-- [ ] Generate OpenSCAD files
-- [ ] Test print in PLA
-- [ ] Iterate on fit
+## v2 (after the trip)
+Solder wires directly to the header pin tips instead of jumper housings: ~10 mm thinner
+grip, reprint the back shell only.
