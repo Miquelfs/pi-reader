@@ -37,7 +37,8 @@ comp = {
  'PiSugar USB':        box(C.PI_X1 - 5, sd(55.8), C.CHARGE_Z - 1.4, C.PI_X1 + 0.5, sd(48.2), C.CHARGE_Z + 1.4),
  'PiSugar switch':     box(C.PI_X1 - 3, sd(15.5), C.SWITCH_Z - 0.6, C.PI_X1 + 0.3, sd(11.5), C.SWITCH_Z + 0.6),
  'SD card':            box(C.PI_X0 + 9, C.PI_Y1, pcb_b - 1.5, C.PI_X0 + 21, C.PI_Y1 + 2.5, pcb_b),
- 'header+soldered wires': box(C.PI_X0 + 0.9, C.PI_Y0 + 5.8, pcb_b + 2.5, C.PI_X0 + 6.1, C.PI_Y0 + 59.2, C.PIN_TIPS_Z + C.WIRES_ON_PINS - 0.3),
+ 'header+jumper plugs': box(C.PI_X0 + 0.9, C.PI_Y0 + 5.8, pcb_b + 2.5, C.PI_X0 + 6.1, C.PI_Y0 + 59.2, pcb_b + C.HEADER_HEIGHT),
+ 'wires bent flat over the Pi': box(C.PI_X0 + 0.9, C.PI_Y0 + 5.8, pcb_b + 16.5, C.PI_X0 + 20, C.PI_Y0 + 59.2, pcb_b + C.HEADER_HEIGHT),
 }
 for x in (C.PI_X0 + 3.5, C.PI_X1 - 3.5):
     for y in (C.PI_Y0 + 3.5, C.PI_Y1 - 3.5):

@@ -41,7 +41,7 @@ ACTIVE_W, ACTIVE_H = 81.12, 47.32
 WINDOW_X0 = IMG_LEFT + (BOARD_W - IMG_LEFT - IMG_RIGHT) / 2 - ACTIVE_W / 2
 WINDOW_Y0 = IMG_BOTTOM + (BOARD_H - IMG_BOTTOM - IMG_TOP) / 2 - ACTIVE_H / 2
 PI_ABOVE_BOARD = 1.7     # Pi PCB (SD-card end) past the board's top edge
-WIRES_ON_PINS = 4.0      # wires soldered to the pin tips and bent flat (jumper plugs need 37)
+HEADER_HEIGHT = 25.0     # Pi board surface → top of the jumper plugs with wires bent flat (measured)
 
 # ── Design ───────────────────────────────────────────────────────────────────
 WALL = 2.0
@@ -77,7 +77,7 @@ GLASS_Z = LIP
 PIN_TIPS_Z = LIP + STACK_DEPTH + PI_SPACER
 BATTERY_Z = PIN_TIPS_Z - PI_STACK                 # battery's front face
 THIN_BACK = LIP + SOCKET_DEPTH + 1.0 + WALL       # 1 mm foam pad on the socket
-GRIP_BACK = PIN_TIPS_Z + WIRES_ON_PINS + WALL
+GRIP_BACK = PIN_TIPS_Z - 8.5 + HEADER_HEIGHT + 0.5 + WALL
 PI_X1 = W - WALL - PI_PORT_GAP                    # port side
 PI_X0 = PI_X1 - PI_W
 PI_Y1 = BY1 + PI_ABOVE_BOARD                      # SD-card end

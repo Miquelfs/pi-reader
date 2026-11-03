@@ -35,8 +35,10 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 ## Decisions from measurements (2026-11-03)
 - Switches are tall 6×6 (9.96 mm). Their plungers poke 1 mm through 4.2 mm holes in the
   front panel; no printed caps.
-- Jumper plugs on the header stand 37 mm with their wires, which would make a 73 mm grip.
-  Wires are soldered directly onto the header pin tips and bent flat (~4 mm): grip 49.7 mm.
+- Display cable and buttons stay on plug-on jumpers (no soldering on the Pi). With the wires
+  bent flat right at the plugs they stand 25 mm above the Pi board: grip 62.7 mm.
+  (Soldering wires to the pin tips would give ~50 mm; plugging the display straight onto the
+  Pi covers the button pins and needs a splitter board or USB keypad — v2 ideas.)
 - Back shell prints back-face down with supports touching the build plate only.
 
 ## Wiring
@@ -105,5 +107,5 @@ thick part is in the right hand, like a book's spine or a Kindle Oasis grip:
 - `tools/frame_test.py` — draws a frame on the panel edge pixels to measure the image area.
 
 ## v2 (after the trip)
-Solder wires directly to the header pin tips instead of jumper housings: ~10 mm thinner
-grip, reprint the back shell only.
+Thinner grip: solder wires to the pin tips (~13 mm thinner, back shell reprint only), or plug
+the display onto the Pi and move the buttons to a GPIO splitter or a small USB keypad.
