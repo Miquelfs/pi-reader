@@ -111,4 +111,4 @@ class UploadScreen:
             self._stop.set()
             _stop_server()
             from screens.menu import MenuScreen
-            self.ereader.switch_to(MenuScreen, start_index=3)
+            self.ereader.switch_to(MenuScreen, start='Upload')

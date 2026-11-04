@@ -7,15 +7,15 @@ _W = 480
 _H = 280
 _MARGIN = 28
 _HEADER_H = 54
-_ITEM_H = 36
+_ITEM_H = 33
 _SPLIT_X = 220   # left nav column ends here
 
 
 class MenuScreen:
-    def __init__(self, ereader, start_index=0):
+    def __init__(self, ereader, start='Today'):
         self.ereader = ereader
-        self.menu = start_index
-        self.options = ['Library', 'Highlights', 'Statistics', 'Upload', 'Settings']
+        self.options = ['Today', 'Library', 'Highlights', 'Statistics', 'Upload', 'Settings']
+        self.menu = self.options.index(start) if start in self.options else 0
 
     def draw(self):
         img = Image.new('1', (_W, _H), 0xFF)
@@ -103,7 +103,10 @@ class MenuScreen:
             self.draw()
         elif key == 'p':
             selected = self.options[self.menu]
-            if selected == 'Library':
+            if selected == 'Today':
+                from screens.today_screen import TodayScreen
+                self.ereader.switch_to(TodayScreen)
+            elif selected == 'Library':
                 from screens.library import LibraryScreen
                 self.ereader.switch_to(LibraryScreen)
             elif selected == 'Highlights':

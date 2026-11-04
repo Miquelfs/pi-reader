@@ -137,4 +137,4 @@ class ConfigScreen:
 
         elif key == 'q':
             from screens.menu import MenuScreen
-            self.ereader.switch_to(MenuScreen, start_index=4)
+            self.ereader.switch_to(MenuScreen, start='Settings')

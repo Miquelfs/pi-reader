@@ -94,7 +94,7 @@ class SavedScreen:
         if not self.highlights:
             if key == 'q':
                 from screens.menu import MenuScreen
-                self.ereader.switch_to(MenuScreen, start_index=1)
+                self.ereader.switch_to(MenuScreen, start='Highlights')
             return
         if key == 'w':
             self.index = max(0, self.index - 1)
@@ -104,4 +104,4 @@ class SavedScreen:
             self.draw()
         elif key == 'q':
             from screens.menu import MenuScreen
-            self.ereader.switch_to(MenuScreen, start_index=1)
+            self.ereader.switch_to(MenuScreen, start='Highlights')

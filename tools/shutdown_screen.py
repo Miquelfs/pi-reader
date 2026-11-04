@@ -11,5 +11,5 @@ from config.display_manager import display
 from screens.sleep_screen import build_sleep_image
 
 display.init_display()
-display.draw_screen(build_sleep_image())
+display.draw_screen(build_sleep_image(off=True))
 display.sleep()

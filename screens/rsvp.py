@@ -2,11 +2,12 @@ import time
 import threading
 from PIL import Image, ImageDraw
 from config.display_manager import display
-from config.fonts import font_title, font_options_24, font_medium_18, font_text_10
-from config.ui_components import draw_header, draw_footer
+from config.fonts import font_rsvp, font_rsvp_small, font_rsvp_tiny, font_text_10
 
 _W = 480
 _H = 280
+_FOCUS_X = 200     # a little left of centre: most of a word sits after its focus letter
+_EDGE = 12
 
 # Each word is a full panel refresh, so the top speeds are only reachable if
 # the refresh is quick enough — the loop just runs as fast as the panel allows.
@@ -16,6 +17,12 @@ _DEFAULT_WPM = 2  # index into _WPM_OPTIONS → 150 WPM
 
 def _wpm_to_delay(wpm):
     return 60.0 / wpm
+
+
+def focus_index(word):
+    """Optimal recognition point: the letter the eye should land on (Spritz-style)."""
+    n = len(word)
+    return 0 if n <= 1 else 1 if n <= 5 else 2 if n <= 9 else 3 if n <= 13 else 4
 
 
 class RSVPScreen:
@@ -43,37 +50,34 @@ class RSVPScreen:
     # ── Drawing ───────────────────────────────────────────────────────────────
 
     def draw(self):
-        _HEADER_H = 54
+        """Only the word. One letter (the recognition point) stays at the same x on every
+        word, marked by two ticks, so the eye never moves. Paused shows the speed."""
         img = Image.new('1', (_W, _H), 0xFF)
         draw = ImageDraw.Draw(img)
 
-        # Header: "RSVP" centred title + WPM right-aligned in the bar
-        draw_header(draw, "RSVP", w=_W, h=_HEADER_H)
-        wpm = _WPM_OPTIONS[self._wpm_idx]
-        wpm_str = f"{wpm} WPM"
-        wpm_w = int(font_medium_18.getlength(wpm_str))
-        draw.text((_W - wpm_w - 16, (_HEADER_H - 18) // 2), wpm_str, font=font_medium_18, fill=0xFF)
+        word = self.words[self.current_word] if self.words else ''
+        if word:
+            i = focus_index(word)
+            # largest size that fits; a long word may have to shift, then the ticks follow it
+            for font in (font_rsvp, font_rsvp_small, font_rsvp_tiny):
+                if font.getlength(word) <= _W - 2 * _EDGE:
+                    break
+            before = font.getlength(word[:i]) + font.getlength(word[i]) / 2
+            x = _FOCUS_X - before
+            x = max(_EDGE, min(x, _W - _EDGE - font.getlength(word)))
+            fx = x + before
+            ascent, descent = font.getmetrics()
+            y = (_H - ascent - descent) // 2
+            draw.text((x, y), word, font=font, fill=0)
+            draw.line((fx, y - 16, fx, y - 4), fill=0, width=2)   # above any accent
+            bottom = y + ascent + descent
+            draw.line((fx, bottom + 4, fx, bottom + 16), fill=0, width=2)
 
-        # Central word — large, centred vertically in the reading zone
-        word = self.words[self.current_word] if self.words else '—'
-        word_w = int(font_title.getlength(word))
-        word_x = max(16, (_W - word_w) // 2)
-        word_y = _HEADER_H + (_H - _HEADER_H - 80) // 2 - 18
-        draw.text((word_x, word_y), word, font=font_title, fill=0)
-
-        # Progress bar
         if self.words:
-            progress = self.current_word / len(self.words)
-            bar_y = _H - 46
-            bar_w = int((_W - 32) * progress)
-            draw.rectangle((16, bar_y, _W - 16, bar_y + 8), outline=0)
-            if bar_w > 0:
-                draw.rectangle((16, bar_y, 16 + bar_w, bar_y + 8), fill=0)
-            pct = int(progress * 100)
-            draw.text((16, bar_y + 12), f"{pct}%  ·  word {self.current_word + 1} of {len(self.words)}", font=font_text_10, fill=0)
-
-        status = "playing" if self._playing else "paused"
-        draw_footer(draw, status, "p=pause  w/s=speed  q=exit", w=_W, h=_H, margin=16)
+            draw.rectangle((0, _H - 3, int(_W * self.current_word / len(self.words)), _H - 2), fill=0)
+        if not self._playing:
+            hint = f"paused · {_WPM_OPTIONS[self._wpm_idx]} wpm"
+            draw.text(((_W - font_text_10.getlength(hint)) / 2, _H - 26), hint, font=font_text_10, fill=0)
 
         display.draw_screen(img)
 

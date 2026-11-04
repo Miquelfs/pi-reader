@@ -1,0 +1,3 @@
+# Lets the reader power the Pi off when Back is held for 3 seconds.
+# Install: sudo install -m 0440 pi-reader.sudoers /etc/sudoers.d/pi-reader && sudo visudo -c
+miquel ALL=(root) NOPASSWD: /usr/bin/systemctl poweroff

@@ -12,26 +12,31 @@
 ```
 main.py                  — EReader: event loop, GPIO/keyboard input, auto-sleep, boot-to-last-book
 screens/
-  menu.py                — Main menu (Library, Highlights, Statistics, Upload, Settings) + stats panel
+  menu.py                — Main menu (Today, Library, Highlights, Statistics, Upload, Settings) + stats panel.
+                           MenuScreen(start='Library') selects an item by name
+  today_screen.py        — Read-only day from Daybook: tasks, weather, duty/trip, current book, streak
   library.py             — Book list with pagination, truncated titles
   reader.py              — Book reader: pixel-width wrap, justified text, headings, bookmarks, session stats
   reader_menu.py         — p in reader: Save highlight, Contents, RSVP, Font size, Sync to Daybook
   toc_screen.py          — Table of contents from detected headings
-  rsvp.py                — RSVP word-by-word reader
+  rsvp.py                — RSVP word-by-word reader: only the word, focus letter fixed under two ticks
   saved_screen.py        — Browse saved highlights (+ save_highlight())
   stats_screen.py        — Reading statistics
   config_screen.py       — Settings (sleep timeout, default font, daily goal)
   upload_screen.py       — Shows IP, runs the Flask upload server only while on this screen
-  sleep_screen.py        — Builds the Obelix shutdown/sleep image with live date
+  sleep_screen.py        — Sleep/off image: tomorrow's duty or trip day from the Daybook cache,
+                           else Obelix. build_sleep_image(off=True) adds "safe to slide the switch"
 config/
   display_manager.py     — init, deep_clear, draw_screen, sleep, wake; display.lock; fast_buffer()
   display.py             — Waveshare EPD3in7 hardware init (480×280)
-  fonts.py               — All fonts loaded once (Literata, fallback to default)
+  fonts.py               — All fonts loaded once: Literata (content, SemiBold for headings/RSVP),
+                           Atkinson Hyperlegible (labels/footers, legible at small sizes on 1-bit)
   paths.py               — BASE_DIR + all content/asset paths in one place
-  ui_components.py       — draw_header(), draw_footer(); battery stub (returns None)
+  ui_components.py       — draw_header() (title + hairline), draw_label(), draw_footer(); battery stub
 app/
   __init__.py            — Flask app + secret key
-  file_transfer.py       — POST / upload books (100 MB cap), GET /highlights
+  file_transfer.py       — POST / upload books (100 MB cap), POST /article (link → text),
+                           POST /text (pasted text), GET /highlights
   text_converter.py      — ebook-convert wrapper (Calibre), one conversion at a time; .txt copied as-is
 utils/
   text_parser.py         — parse() → List[Line(text, kind)] where kind=body/heading/gap; wrap_px()
@@ -39,6 +44,9 @@ utils/
   stats.py               — reading sessions in content/stats.json, streak, totals
   config_manager.py      — content/config.json settings with defaults
   daybook_sync.py        — fire-and-forget calls to the Daybook API (background threads)
+  daybook_today.py       — fetches /agenda, /weather, roster briefs, planned trips, on-this-day into
+                           content/today.json; today_view()/tomorrow_view() are pure (tested)
+  article.py             — stdlib HTML → article text; save_to_library() writes .txt + .meta.json
   battery.py             — PiSugar2 I2C read (unused — see Known issues)
 tests/                   — unittest for pure modules: python3 -m unittest discover tests
 tools/
@@ -82,12 +90,14 @@ Boot → last-read book (exact position) OR Menu if no book opened yet
        (python3 main.py --menu forces the menu)
 
 Main Menu
+├── Today       → read-only day from Daybook (cached, refreshes in background)
 ├── Library     → select book → Reader
 │                 In Reader: s/w=page, p=reader options, q=back to library
 │                 Reader options: Save highlight, Contents, RSVP mode, Font, Sync to Daybook
 ├── Highlights  → saved highlights browser (w/s=scroll, q=back)
 ├── Statistics  → reading stats
 ├── Upload      → shows IP, runs Flask on port 5000 until you press q
+│                 (phone: upload a book, send an article link, or paste text)
 └── Settings    → sleep timeout, default font, daily goal (w/s change, p next row)
 ```
 
@@ -96,8 +106,9 @@ Main Menu
 w = up / prev page
 s = down / next page
 p = select / reader options
-q = back
-z = quit (keyboard fallback only)
+q = back (acts on release)
+hold Back 3 s = save, draw the off screen, power the Pi off (needs pi-reader.sudoers)
+z = quit, x = power off (keyboard fallback only)
 ```
 
 ## RSVP
@@ -143,7 +154,10 @@ sudo systemctl daemon-reload
 sudo systemctl enable pi-reader-shutdown.service
 sudo systemctl enable pi-reader.service
 
-# 5. Enable I2C (if not already)
+# 5. Let the reader power off when Back is held for 3 s
+sudo install -m 0440 pi-reader.sudoers /etc/sudoers.d/pi-reader && sudo visudo -c
+
+# 6. Enable I2C (if not already)
 sudo raspi-config nonint do_i2c 0
 ```
 

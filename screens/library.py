@@ -96,4 +96,4 @@ class LibraryScreen:
                                        book_file=self.books[self._flat_index()].filename)
         elif key == 'q':
             from screens.menu import MenuScreen
-            self.ereader.switch_to(MenuScreen, start_index=0)
+            self.ereader.switch_to(MenuScreen, start='Library')

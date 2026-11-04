@@ -85,4 +85,4 @@ class StatsScreen:
     def handle_key(self, key):
         if key == 'q':
             from screens.menu import MenuScreen
-            self.ereader.switch_to(MenuScreen, start_index=2)
+            self.ereader.switch_to(MenuScreen, start='Statistics')

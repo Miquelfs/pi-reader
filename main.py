@@ -1,3 +1,4 @@
+import subprocess
 import sys
 import threading
 import time
@@ -16,6 +17,8 @@ PIN_BACK   = 26   # physical pin 37 — shared GND on pin 39
 
 # Auto-sleep default (overridden by content/config.json at runtime)
 SLEEP_AFTER_S = 300
+HOLD_TO_POWER_OFF_S = 3
+DAYBOOK_REFRESH_S = 30 * 60
 
 
 class EReader:
@@ -27,6 +30,8 @@ class EReader:
         self._gpio_available = False
         # Serialises key handling with auto-sleep (they run on different threads)
         self._lock = threading.RLock()
+        self._back_held = False
+        self._last_refresh = 0
         self._setup_gpio()
 
     def _setup_gpio(self):
@@ -38,12 +43,15 @@ class EReader:
             btn_up     = Button(PIN_UP,     pull_up=True, bounce_time=0.05)
             btn_down   = Button(PIN_DOWN,   pull_up=True, bounce_time=0.05)
             btn_select = Button(PIN_SELECT, pull_up=True, bounce_time=0.05)
-            btn_back   = Button(PIN_BACK,   pull_up=True, bounce_time=0.05)
+            btn_back   = Button(PIN_BACK,   pull_up=True, bounce_time=0.05, hold_time=HOLD_TO_POWER_OFF_S)
 
             btn_up.when_pressed     = lambda: self._handle_key('w')
             btn_down.when_pressed   = lambda: self._handle_key('s')
             btn_select.when_pressed = lambda: self._handle_key('p')
-            btn_back.when_pressed   = lambda: self._handle_key('q')
+            # Back acts on release, so holding it for 3 s can mean "power off" instead
+            btn_back.when_pressed   = self._back_down
+            btn_back.when_held      = self._back_hold
+            btn_back.when_released  = self._back_up
 
             # Keep references so gpiozero doesn't garbage-collect them
             self._buttons = [btn_up, btn_down, btn_select, btn_back]
@@ -51,6 +59,43 @@ class EReader:
             print("GPIO buttons active.")
         except Exception as e:
             print(f"GPIO not available ({e}) — using keyboard input.")
+
+    def _back_down(self):
+        self._back_held = False
+
+    def _back_hold(self):
+        self._back_held = True
+        self.power_off()
+
+    def _back_up(self):
+        if not self._back_held:
+            self._handle_key('q')
+
+    def power_off(self):
+        """Save the session, leave tomorrow's screen (or Obelix) on the panel, halt the Pi.
+        Needs the sudoers rule from pi-reader.sudoers to run without a password."""
+        with self._lock:
+            on_sleep = getattr(self.current_screen, 'on_sleep', None)
+            if on_sleep:
+                on_sleep()
+            from screens.sleep_screen import build_sleep_image
+            if self._sleeping:
+                display.wake()
+            display.draw_screen(build_sleep_image(off=True))
+            display.sleep()
+            self._sleeping = True
+            self.running = False
+            print("Powering off.")
+            result = subprocess.run(['sudo', '-n', 'systemctl', 'poweroff'], capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"Power off failed (sudoers rule missing?): {result.stderr.strip()}")
+
+    def _refresh_daybook(self):
+        if time.time() - self._last_refresh < DAYBOOK_REFRESH_S:
+            return
+        self._last_refresh = time.time()
+        from utils.daybook_today import refresh_in_background
+        refresh_in_background()
 
     def _handle_key(self, key):
         with self._lock:
@@ -107,6 +152,8 @@ class EReader:
                     with self._lock:
                         self._sleep()
                         self.running = False
+                elif key == 'x':      # same as holding Back for 3 s: powers the Pi off
+                    self.power_off()
                 else:
                     self._handle_key(key)
         except EOFError:
@@ -129,6 +176,8 @@ class EReader:
             threading.Thread(target=self._keyboard_loop, daemon=True).start()
         while self.running:
             self._check_sleep()
+            if not self._sleeping:
+                self._refresh_daybook()
             time.sleep(1)
 
 
