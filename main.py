@@ -172,7 +172,8 @@ class EReader:
         else:
             self.switch_to(MenuScreen)
 
-        if not self._gpio_available:
+        # Keys over SSH work alongside the buttons whenever we run in a terminal
+        if not self._gpio_available or sys.stdin.isatty():
             threading.Thread(target=self._keyboard_loop, daemon=True).start()
         while self.running:
             self._check_sleep()
